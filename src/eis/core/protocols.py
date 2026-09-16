@@ -2,6 +2,7 @@
 
 Concrete adapters belong outside these contracts so the core remains provider-agnostic.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -51,6 +52,7 @@ class Repository(Protocol):
 @runtime_checkable
 class Tool(Protocol):
     name: str
+
     async def execute(self, arguments: dict[str, Any]) -> Any: ...
 
 
@@ -67,4 +69,5 @@ class Evaluator(Protocol):
 @runtime_checkable
 class Agent(Protocol):
     name: str
+
     async def run(self, task: str, *, context: dict[str, Any] | None = None) -> Any: ...
