@@ -146,10 +146,12 @@ class ReliableModel:
                     )
                 )
                 return result
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 if attempts >= self._policy.max_attempts:
                     raise ModelTimeoutError(
-                        f"{operation} timed out", provider=self.metadata.provider, retryable=False
+                        f"{operation} timed out",
+                        provider=self.metadata.provider,
+                        retryable=False,
                     ) from exc
                 await asyncio.sleep(self._policy.delay(attempts))
             except ModelError as exc:
