@@ -21,9 +21,7 @@ from eis.tools.policies import ToolSecurityError
 
 
 def _schema(properties: dict[str, Any], required: list[str]) -> ToolSchema:
-    return ToolSchema(
-        {"type": "object", "properties": properties, "required": required}
-    )
+    return ToolSchema({"type": "object", "properties": properties, "required": required})
 
 
 class FilesystemTool:
