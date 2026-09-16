@@ -32,8 +32,6 @@ class ExecutionStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class ToolSchema:
-    """Minimal JSON-Schema-like contract exposed to planners and agents."""
-
     schema: dict[str, Any] = field(default_factory=dict)
 
 
@@ -54,6 +52,7 @@ class ToolDefinition:
 class ToolRequest:
     tool: str
     arguments: dict[str, Any] = field(default_factory=dict)
+    granted_permissions: frozenset[str] = frozenset()
     agent_id: UUID | None = None
     task_id: UUID | None = None
     request_id: UUID = field(default_factory=uuid4)
