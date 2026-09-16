@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from eis.memory.models import MemoryKind, MemoryRecord, MemoryScope
+from eis.memory.models import MemoryKind, MemoryRecord, MemoryScope, MemoryStatus
 
 
 class LocalMemoryRepository:
@@ -21,7 +21,7 @@ class LocalMemoryRepository:
 
     def get(self, memory_id: UUID, *, include_inactive: bool = False) -> MemoryRecord | None:
         memory = self._records.get(memory_id)
-        if memory is None or (not include_inactive and memory.status is not memory.status.ACTIVE):
+        if memory is None or (not include_inactive and memory.status is not MemoryStatus.ACTIVE):
             return None
         return memory
 
@@ -43,7 +43,7 @@ class LocalMemoryRepository:
                 continue
             if kind is not None and memory.kind is not kind:
                 continue
-            if not include_inactive and memory.status.value != "active":
+            if not include_inactive and memory.status is not MemoryStatus.ACTIVE:
                 continue
             if needle in str(memory.content).casefold():
                 records.append(memory)
