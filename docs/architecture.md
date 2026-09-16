@@ -12,7 +12,7 @@ SDK / entrypoints
        |
  agents -> reasoning -> integrity -> knowledge/memory
        |                    |
- execution -> tools        providers/adapters
+ execution -> tools        model contracts -> provider adapters
        |
  security + observability (cross-cutting)
 ```
@@ -27,6 +27,7 @@ The core defines domain-neutral value objects and protocols. Concrete providers 
 - **memory** — contextual and experiential memory distinct from canonical knowledge.
 - **reasoning** — evidence-aware assessment and decision formation; keeps reasoning policy separate from model transport.
 - **integrity** — claim taxonomy, evidence attribution, freshness, contradiction handling, confidence, uncertainty and Honest Intelligence invariants.
+- **models** — provider-independent model requests, responses, tools, streaming, metadata, usage and reliability contracts.
 - **agents** — capability-oriented agent lifecycle; agents orchestrate capabilities rather than owning infrastructure.
 - **tools** — explicit external capabilities with permission boundaries.
 - **execution** — controlled side effects; separates deciding what to do from actually doing it.
@@ -35,6 +36,14 @@ The core defines domain-neutral value objects and protocols. Concrete providers 
 - **security** — authorization, secret handling and policy enforcement.
 - **observability** — structured logs, audit events, metrics and tracing contracts.
 - **SDK** — stable public entry point for applications and future integrations.
+
+## Model abstraction system
+
+The Model Abstraction Layer is documented in [Model Abstraction](architecture/model-abstraction.md). EIS domains interact with `Model`, `ModelProvider`, `GenerationRequest`, `GenerationResponse`, structured-generation contracts, embedding contracts, normalized tool calls, model metadata and usage values. Concrete adapters are isolated under `eis.adapters.models`.
+
+Phase 5 also adds `ReliableModel`, which centralizes request tracing, timeout handling, retry policy and normalized usage aggregation. Provider adapters translate API protocols only; they do not contain EIS business logic. `ModelRegistry` selects an injected provider from validated configuration.
+
+The built-in `OpenAICompatibleModel` adapter can target multiple compatible hosted providers by configuration. `FakeModel` and `FakeModelProvider` provide deterministic test doubles. Additional providers can implement the same stable interfaces, including local model runtimes and providers with non-compatible APIs.
 
 ## Knowledge system
 
@@ -64,7 +73,7 @@ The Integrity Engine turns these principles into enforceable domain contracts in
 
 ## Provider neutrality
 
-`Model`, `Embedder`, `KnowledgeStore`, and `Repository` are protocols. Memory storage is also defined by `MemoryRepository`, while summarization is isolated behind `MemorySummarizer`. Integrity is defined by `IntegrityEngine`, `ClaimValidator`, `ContradictionDetector`, `FreshnessChecker`, `EvidenceTracker`, `ProvenanceTracker`, and `ConfidenceCalibrator`. No domain module imports an LLM SDK, vector database client, or Git provider SDK. Future adapters can target local models, hosted APIs, multiple embedding engines, SQL/vector stores, GitHub, GitLab, or other repository systems without changing the domain contracts.
+The `models` domain owns all model-facing contracts. No domain module should import an LLM provider SDK. Concrete provider adapters depend on `eis.models`, never the reverse. The same boundary applies to knowledge, memory and repository providers. Future adapters can target local models, hosted APIs, multiple embedding engines, SQL/vector stores, GitHub, GitLab, or other repository systems without changing domain contracts.
 
 ## Execution safety
 
@@ -72,4 +81,4 @@ Reasoning produces decisions; execution applies approved actions. Tool calls and
 
 ## Current scope
 
-Phase 1 contains the runtime foundation. Phase 2 adds canonical knowledge models, provenance, relationships, versioning, invalidation, provider-neutral repository and ingestion interfaces, and a local development store. Phase 3 adds first-class memory models, lifecycle-aware local retrieval, confidence/relevance metadata, conflict and uncertainty handling, and summarization interfaces. Phase 4 adds the deterministic Integrity Engine, explicit claim/evidence models, contradiction and freshness checks, HonestResponse/IdeaEvaluation structures, confidence calibration interfaces, and hallucination-focused tests. No model-backed semantic judgment, external evidence connector, vector retrieval, or autonomous execution is implemented yet.
+Phase 1 contains the runtime foundation. Phase 2 adds canonical knowledge models, provenance, relationships, versioning, invalidation, provider-neutral repository and ingestion interfaces, and a local development store. Phase 3 adds first-class memory models, lifecycle-aware local retrieval, confidence/relevance metadata, conflict and uncertainty handling, and summarization interfaces. Phase 4 adds the deterministic Integrity Engine, explicit claim/evidence models, contradiction and freshness checks, HonestResponse/IdeaEvaluation structures, confidence calibration interfaces, and hallucination-focused tests. Phase 5 adds provider-independent model contracts, configuration-driven selection, a concrete OpenAI-compatible HTTP adapter, deterministic fakes, structured provider errors, retry/timeout handling, tracing and usage aggregation. Advanced agent behavior, autonomous execution and provider-specific business logic remain outside this phase.
