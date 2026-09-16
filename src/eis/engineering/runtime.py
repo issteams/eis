@@ -129,9 +129,7 @@ class EngineeringAgent:
             valid, reason = await self._validator.validate(task, snapshot, plan)
             records.append(ChangeRecord(EngineeringPhase.VALIDATE_PLAN, detail=reason))
             if not valid:
-                raise EngineeringEscalation(
-                    f"implementation plan rejected: {reason}"
-                )
+                raise EngineeringEscalation(f"implementation plan rejected: {reason}")
 
             while iterations < self._limits.max_iterations:
                 iterations += 1
@@ -145,9 +143,7 @@ class EngineeringAgent:
                     },
                 )
                 changes = self._record_changes(implementation)
-                records.append(
-                    ChangeRecord(EngineeringPhase.IMPLEMENT, changes=changes)
-                )
+                records.append(ChangeRecord(EngineeringPhase.IMPLEMENT, changes=changes))
                 self._enforce_file_limit()
 
                 targeted = await self._call_tool(
@@ -165,9 +161,7 @@ class EngineeringAgent:
                         )
                     )
                     if iterations >= self._limits.max_iterations:
-                        raise EngineeringEscalation(
-                            "maximum engineering iterations reached"
-                        )
+                        raise EngineeringEscalation("maximum engineering iterations reached")
                     await self._call_tool(
                         "engineering.correct",
                         {
@@ -184,9 +178,7 @@ class EngineeringAgent:
                     )
                     continue
 
-                records.append(
-                    ChangeRecord(EngineeringPhase.TARGETED_TESTS, detail="passed")
-                )
+                records.append(ChangeRecord(EngineeringPhase.TARGETED_TESTS, detail="passed"))
                 broader = await self._call_tool(
                     "engineering.test.broader",
                     {"repository": task.repository, "plan": plan},
@@ -202,9 +194,7 @@ class EngineeringAgent:
                         )
                     )
                     if iterations >= self._limits.max_iterations:
-                        raise EngineeringEscalation(
-                            "maximum engineering iterations reached"
-                        )
+                        raise EngineeringEscalation("maximum engineering iterations reached")
                     await self._call_tool(
                         "engineering.correct",
                         {
@@ -221,9 +211,7 @@ class EngineeringAgent:
                     )
                     continue
 
-                records.append(
-                    ChangeRecord(EngineeringPhase.BROADER_TESTS, detail="passed")
-                )
+                records.append(ChangeRecord(EngineeringPhase.BROADER_TESTS, detail="passed"))
                 records.append(
                     ChangeRecord(
                         EngineeringPhase.REPORT,
@@ -309,9 +297,7 @@ class EngineeringAgent:
             raise EngineeringEscalation("maximum execution time reached")
 
     @staticmethod
-    def _summary(
-        plan: EngineeringPlan, tests: list[str], changes: tuple[FileChange, ...]
-    ) -> str:
+    def _summary(plan: EngineeringPlan, tests: list[str], changes: tuple[FileChange, ...]) -> str:
         return (
             f"Implemented {plan.objective!r} using {len(changes)} changed file(s); "
             f"verification completed with {len(tests)} test stages."
