@@ -63,8 +63,18 @@ class Agent:
         observability: Any = None,
     ) -> Agent:
         return cls(
-            uuid4(), identity, role, capabilities, permissions, objectives, context,
-            tools, policies, execution_limits or {}, memory, observability,
+            uuid4(),
+            identity,
+            role,
+            capabilities,
+            permissions,
+            objectives,
+            context,
+            tools,
+            policies,
+            execution_limits or {},
+            memory,
+            observability,
         )
 
 
