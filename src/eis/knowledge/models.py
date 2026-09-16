@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -80,7 +80,7 @@ class Provenance:
     ) -> Provenance:
         return cls(
             source=source,
-            captured_at=datetime.now(timezone.utc),
+            captured_at=datetime.now(UTC),
             source_version=source_version,
             content_hash=content_hash,
             ingested_by=ingested_by,
@@ -135,7 +135,7 @@ class KnowledgeEntity:
         metadata: dict[str, Any] | None = None,
         relationships: tuple[KnowledgeRelationship, ...] = (),
     ) -> KnowledgeEntity:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         version = KnowledgeVersion(1, content, provenance, now)
         return cls(uuid4(), kind, name, description, 1, (version,), relationships, metadata or {})
 
@@ -151,9 +151,13 @@ class KnowledgeEntity:
         version = self.active_version
         return version.content if version else None
 
-    def with_version(self, content: str | dict[str, Any], provenance: Provenance) -> KnowledgeEntity:
+    def with_version(
+        self,
+        content: str | dict[str, Any],
+        provenance: Provenance,
+    ) -> KnowledgeEntity:
         """Create a new authoritative version while retaining historical versions."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         next_version = self.current_version + 1
         version = KnowledgeVersion(next_version, content, provenance, now)
         return KnowledgeEntity(
@@ -169,7 +173,7 @@ class KnowledgeEntity:
 
     def invalidate(self, reason: str) -> KnowledgeEntity:
         """Invalidate the current version without deleting its historical record."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         versions = list(self.versions)
         current = versions[self.current_version - 1]
         versions[self.current_version - 1] = KnowledgeVersion(
