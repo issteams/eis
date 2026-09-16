@@ -14,9 +14,7 @@ from eis.knowledge import (
 
 
 def make_entity(name: str = "Architecture") -> KnowledgeEntity:
-    source = KnowledgeSource.create(
-        "document", "docs/architecture.md", authority="echowavs"
-    )
+    source = KnowledgeSource.create("document", "docs/architecture.md", authority="echowavs")
     return KnowledgeEntity.create(
         KnowledgeKind.ARCHITECTURE,
         name,
