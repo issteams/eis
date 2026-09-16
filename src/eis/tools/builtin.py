@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -22,16 +21,25 @@ from eis.tools.policies import ToolSecurityError
 
 
 def _schema(properties: dict[str, Any], required: list[str]) -> ToolSchema:
-    return ToolSchema({"type": "object", "properties": properties, "required": required})
+    return ToolSchema(
+        {"type": "object", "properties": properties, "required": required}
+    )
 
 
 class FilesystemTool:
     definition = ToolDefinition(
         "filesystem",
         "Read or write files below an explicitly configured root.",
-        _schema({"operation": {"type": "string"}, "path": {"type": "string"}, "content": {"type": "string"}}, ["operation", "path"]),
+        _schema(
+            {
+                "operation": {"type": "string"},
+                "path": {"type": "string"},
+                "content": {"type": "string"},
+            },
+            ["operation", "path"],
+        ),
         ToolSchema({"type": "object"}),
-        ("filesystem.read", "filesystem.write"),
+        ("filesystem.read",),
         RiskLevel.MEDIUM,
         15.0,
         ExecutionPolicy.SAFE_WRITE,
@@ -112,16 +120,17 @@ class GitTool(ShellTool):
         allowed = {"status", "diff", "log", "show", "branch", "rev-parse", "ls-files"}
         if not isinstance(argv, list) or len(argv) < 2 or argv[1] not in allowed:
             raise ToolSecurityError("git operation is not allowlisted")
-        if argv[1] in {"status", "diff", "log", "show", "branch", "rev-parse", "ls-files"}:
-            return await self.backend.run("git", {"argv": argv}, self.definition.timeout_seconds)
-        raise ToolSecurityError("git operation denied")
+        return await self.backend.run("git", {"argv": argv}, self.definition.timeout_seconds)
 
 
 class RepositoryInspectionTool(FilesystemTool):
     definition = ToolDefinition(
         "repository.inspect",
         "Inspect repository files without permitting writes.",
-        _schema({"operation": {"type": "string"}, "path": {"type": "string"}}, ["operation", "path"]),
+        _schema(
+            {"operation": {"type": "string"}, "path": {"type": "string"}},
+            ["operation", "path"],
+        ),
         ToolSchema({"type": "object"}),
         ("repository.read",),
         RiskLevel.LOW,
@@ -171,11 +180,11 @@ class TestExecutionTool(ShellTool):
 
 
 class PythonExecutionTool:
-    """Explicitly present but prohibited by default; a sandbox backend can replace it later."""
+    """Present for capability discovery but prohibited from local unrestricted execution."""
 
     definition = ToolDefinition(
         "python",
-        "Execute Python code in a sandbox-capable backend; local unrestricted execution is prohibited.",
+        "Execute Python code in a sandbox-capable backend; local execution is prohibited.",
         _schema({"code": {"type": "string"}}, ["code"]),
         ToolSchema({"type": "object"}),
         ("python.execute",),
@@ -193,7 +202,14 @@ class HttpTool:
     definition = ToolDefinition(
         "http",
         "Perform HTTP requests only to explicitly allowlisted hosts.",
-        _schema({"method": {"type": "string"}, "url": {"type": "string"}, "json": {"type": "object"}}, ["method", "url"]),
+        _schema(
+            {
+                "method": {"type": "string"},
+                "url": {"type": "string"},
+                "json": {"type": "object"},
+            },
+            ["method", "url"],
+        ),
         ToolSchema({"type": "object"}),
         ("http.request",),
         RiskLevel.MEDIUM,
@@ -214,7 +230,10 @@ class HttpTool:
             raise ToolSecurityError("HTTP target is not allowlisted HTTPS")
         if method not in {"GET", "HEAD"}:
             raise ToolSecurityError("only GET and HEAD are permitted by this tool")
-        async with httpx.AsyncClient(timeout=self.definition.timeout_seconds, follow_redirects=False) as client:
+        async with httpx.AsyncClient(
+            timeout=self.definition.timeout_seconds,
+            follow_redirects=False,
+        ) as client:
             response = await client.request(method, url)
         return ToolResult(
             ExecutionStatus.SUCCESS if response.is_success else ExecutionStatus.FAILED,
@@ -223,6 +242,7 @@ class HttpTool:
 
 
 def default_tools(root: Path, *, http_hosts: frozenset[str] = frozenset()) -> dict[str, Any]:
+    """Return safe defaults; shell has no commands until explicitly configured."""
     return {
         "filesystem": FilesystemTool(root),
         "shell": ShellTool(frozenset()),
