@@ -13,7 +13,12 @@ class KnowledgeRepository(Protocol):
 
     def create(self, entity: KnowledgeEntity) -> KnowledgeEntity: ...
 
-    def get(self, entity_id: UUID, *, include_invalidated: bool = False) -> KnowledgeEntity | None: ...
+    def get(
+        self,
+        entity_id: UUID,
+        *,
+        include_invalidated: bool = False,
+    ) -> KnowledgeEntity | None: ...
 
     def search(
         self,
@@ -26,7 +31,10 @@ class KnowledgeRepository(Protocol):
 
     def update(self, entity: KnowledgeEntity) -> KnowledgeEntity: ...
 
-    def add_relationship(self, relationship: KnowledgeRelationship) -> KnowledgeEntity: ...
+    def add_relationship(
+        self,
+        relationship: KnowledgeRelationship,
+    ) -> KnowledgeEntity: ...
 
     def invalidate(self, entity_id: UUID, reason: str) -> KnowledgeEntity: ...
 
