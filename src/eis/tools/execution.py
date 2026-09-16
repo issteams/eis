@@ -11,9 +11,7 @@ from typing import Any
 
 from eis.tools.models import (
     AuditEvent,
-    ExecutionPolicy,
     ExecutionStatus,
-    RiskLevel,
     ToolDefinition,
     ToolRequest,
     ToolResult,
@@ -120,25 +118,29 @@ class SecureExecutor:
 
 
 class AgentToolAdapter:
-    """Bridge Phase 7's ``invoke(step)`` API to the secure Phase 8 executor."""
+    """Bridge Phase 7's ``invoke(step)`` API without bypassing agent grants."""
 
-    def __init__(self, tool_name: str, executor: SecureExecutor) -> None:
-        self.tool_name = tool_name
-        self._executor = executor
-        self.definition = executor._definition(tool_name)
+    def __init__(
+        self,
+        tool_name: str,
+        executor: SecureExecutor,
+        granted_permissions: frozenset[str],
+    ) -> None:
         self.name = tool_name
+        self._executor = executor
+        self._granted_permissions = granted_permissions
+        self.definition = executor._definition(tool_name)
 
     async def invoke(self, step: Any) -> ToolResult:
         from eis.agents.models import AgentStep
 
         if not isinstance(step, AgentStep):
             raise TypeError("agent tool adapter requires AgentStep")
-        permissions = frozenset(self.definition.permissions)
         return await self._executor.execute(
             ToolRequest(
-                self.tool_name,
+                self.name,
                 {"step": step.input, "resource": step.resource},
-                permissions,
+                self._granted_permissions,
             )
         )
 
