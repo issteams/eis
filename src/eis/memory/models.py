@@ -80,25 +80,55 @@ class MemoryRecord:
         if observed.tzinfo is None:
             raise ValueError("observed_at must be timezone-aware")
         return cls(
-            uuid4(), scope, kind, content, provenance, now, observed,
-            confidence, relevance, metadata=metadata or {}, supersedes=supersedes,
+            uuid4(),
+            scope,
+            kind,
+            content,
+            provenance,
+            now,
+            observed,
+            confidence,
+            relevance,
+            metadata=metadata or {},
+            supersedes=supersedes,
         )
 
     def invalidate(self, reason: str) -> MemoryRecord:
         if not reason.strip():
             raise ValueError("invalidation reason must not be empty")
         return MemoryRecord(
-            self.id, self.scope, self.kind, self.content, self.provenance,
-            self.created_at, self.observed_at, self.confidence, self.relevance,
-            MemoryStatus.INVALIDATED, datetime.now(UTC), reason, self.supersedes, self.metadata,
+            self.id,
+            self.scope,
+            self.kind,
+            self.content,
+            self.provenance,
+            self.created_at,
+            self.observed_at,
+            self.confidence,
+            self.relevance,
+            MemoryStatus.INVALIDATED,
+            datetime.now(UTC),
+            reason,
+            self.supersedes,
+            self.metadata,
         )
 
     def supersede(self) -> MemoryRecord:
         return MemoryRecord(
-            self.id, self.scope, self.kind, self.content, self.provenance,
-            self.created_at, self.observed_at, self.confidence, self.relevance,
-            MemoryStatus.SUPERSEDED, self.invalidated_at, self.invalidation_reason,
-            self.supersedes, self.metadata,
+            self.id,
+            self.scope,
+            self.kind,
+            self.content,
+            self.provenance,
+            self.created_at,
+            self.observed_at,
+            self.confidence,
+            self.relevance,
+            MemoryStatus.SUPERSEDED,
+            self.invalidated_at,
+            self.invalidation_reason,
+            self.supersedes,
+            self.metadata,
         )
 
 
