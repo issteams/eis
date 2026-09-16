@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -14,7 +15,14 @@ from eis.context import (
 from eis.context.retrieval import ContextScorer, KeywordRetriever, QueryNormalizer, deduplicate, freshness
 
 
-def item(content: str, kind: SourceKind, *, authority: float = 1.0, metadata=None, age_days: int = 0) -> ContextItem:
+def item(
+    content: str,
+    kind: SourceKind,
+    *,
+    authority: float = 1.0,
+    metadata=None,
+    age_days: int = 0,
+) -> ContextItem:
     provenance = ProvenanceRecord(
         source_id=f"{kind}-{content}",
         source_kind=kind,
@@ -35,20 +43,30 @@ def test_query_normalization_removes_noise_and_deduplicates_terms() -> None:
 def test_keyword_relevance_prefers_matching_content() -> None:
     retriever = KeywordRetriever()
     query = Query("architecture retrieval", "architecture retrieval", ("architecture", "retrieval"))
-    relevant = retriever.retrieve(query, [item("EIS architecture and retrieval", SourceKind.KNOWLEDGE), item("billing only", SourceKind.MEMORY)])
+    relevant = retriever.retrieve(
+        query,
+        [
+            item("EIS architecture and retrieval", SourceKind.KNOWLEDGE),
+            item("billing only", SourceKind.MEMORY),
+        ],
+    )
     assert relevant[0].content == "EIS architecture and retrieval"
     assert relevant[0].relevance == 1.0
 
 
-@pytest.mark.asyncio
-async def test_metadata_filtering() -> None:
-    retriever = InMemoryRetriever([
-        item("project alpha", SourceKind.PROJECT, metadata={"project": "alpha"}),
-        item("project beta", SourceKind.PROJECT, metadata={"project": "beta"}),
-    ])
-    query = QueryNormalizer().normalize("project")
-    result = await retriever.retrieve(query, metadata={"project": "alpha"})
-    assert [entry.content for entry in result] == ["project alpha"]
+def test_metadata_filtering() -> None:
+    async def run() -> None:
+        retriever = InMemoryRetriever(
+            [
+                item("project alpha", SourceKind.PROJECT, metadata={"project": "alpha"}),
+                item("project beta", SourceKind.PROJECT, metadata={"project": "beta"}),
+            ]
+        )
+        query = QueryNormalizer().normalize("project")
+        result = await retriever.retrieve(query, metadata={"project": "alpha"})
+        assert [entry.content for entry in result] == ["project alpha"]
+
+    asyncio.run(run())
 
 
 def test_source_priority_and_authority_affect_ranking() -> None:
@@ -64,7 +82,10 @@ def test_conflicting_sources_preserve_both_provenances() -> None:
     second = item("the timeout is 60 seconds", SourceKind.DOCUMENTATION, authority=1.0)
     result = deduplicate([first, second])
     assert len(result) == 2
-    assert {entry.provenance.source_kind for entry in result} == {SourceKind.MEMORY, SourceKind.DOCUMENTATION}
+    assert {entry.provenance.source_kind for entry in result} == {
+        SourceKind.MEMORY,
+        SourceKind.DOCUMENTATION,
+    }
 
 
 def test_stale_source_scores_below_fresh_source() -> None:
@@ -74,18 +95,22 @@ def test_stale_source_scores_below_fresh_source() -> None:
     assert ranked[0].content == "current configuration"
 
 
-@pytest.mark.asyncio
-async def test_context_builder_deduplicates_and_respects_character_limit() -> None:
-    repeated = item("important repository context", SourceKind.REPOSITORY)
-    memory = item("important repository context", SourceKind.MEMORY, authority=0.3)
-    second = item("additional context", SourceKind.DOCUMENTATION)
-    retriever = InMemoryRetriever([repeated, memory, second])
-    builder = ContextBuilder((retriever,))
-    result = await builder.build(ContextRequest("repository context", limit=10, max_characters=30))
-    assert len(result.items) == 1
-    assert result.items[0].provenance.source_kind is SourceKind.REPOSITORY
-    assert result.truncated is True
-    assert result.character_count <= 30
+def test_context_builder_deduplicates_and_respects_character_limit() -> None:
+    async def run() -> None:
+        repeated = item("important repository context", SourceKind.REPOSITORY)
+        memory = item("important repository context", SourceKind.MEMORY, authority=0.3)
+        second = item("additional context", SourceKind.DOCUMENTATION)
+        retriever = InMemoryRetriever([repeated, memory, second])
+        builder = ContextBuilder((retriever,))
+        result = await builder.build(
+            ContextRequest("repository context", limit=10, max_characters=30)
+        )
+        assert len(result.items) == 1
+        assert result.items[0].provenance.source_kind is SourceKind.REPOSITORY
+        assert result.truncated is True
+        assert result.character_count <= 30
+
+    asyncio.run(run())
 
 
 def test_provenance_is_retained_on_retrieved_items() -> None:
