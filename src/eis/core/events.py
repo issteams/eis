@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -16,7 +16,7 @@ class EISEvent:
 
     event_type: str
     correlation_id: CorrelationId
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     event_id: UUID = field(default_factory=uuid4)
     payload: dict[str, Any] = field(default_factory=dict)
 
