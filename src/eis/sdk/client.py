@@ -3,6 +3,7 @@
 The foundation intentionally exposes no autonomous behavior yet. Concrete capabilities
 will be composed through dependency injection in later phases.
 """
+
 from dataclasses import dataclass
 from typing import Any
 
