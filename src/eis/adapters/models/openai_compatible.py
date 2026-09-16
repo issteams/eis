@@ -119,9 +119,7 @@ class OpenAICompatibleModel:
     async def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
         payload = {"model": request.model or self.metadata.model, "input": list(request.texts)}
         data = await self._post("/embeddings", payload, request.timeout)
-        vectors = tuple(
-            tuple(float(value) for value in item["embedding"]) for item in data["data"]
-        )
+        vectors = tuple(tuple(float(value) for value in item["embedding"]) for item in data["data"])
         return EmbeddingResponse(
             vectors,
             self._metadata,
@@ -134,14 +132,15 @@ class OpenAICompatibleModel:
         payload["stream"] = True
         headers = self._headers()
         try:
-            async with httpx.AsyncClient(
-                timeout=request.timeout or self._timeout
-            ) as client, client.stream(
-                "POST",
-                f"{self.base_url}/chat/completions",
-                json=payload,
-                headers=headers,
-            ) as response:
+            async with (
+                httpx.AsyncClient(timeout=request.timeout or self._timeout) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=headers,
+                ) as response,
+            ):
                 await self._raise_for_status(response)
                 async for line in response.aiter_lines():
                     if not line.startswith("data:"):
@@ -154,13 +153,9 @@ class OpenAICompatibleModel:
                     if delta.get("content"):
                         yield delta["content"]
         except httpx.TimeoutException as exc:
-            raise ModelUnavailableError(
-                "stream request timed out", provider=self.provider
-            ) from exc
+            raise ModelUnavailableError("stream request timed out", provider=self.provider) from exc
         except httpx.HTTPError as exc:
-            raise ModelUnavailableError(
-                "provider request failed", provider=self.provider
-            ) from exc
+            raise ModelUnavailableError("provider request failed", provider=self.provider) from exc
 
     def _chat_payload(self, request: GenerationRequest) -> dict[str, Any]:
         messages: list[dict[str, Any]] = []
