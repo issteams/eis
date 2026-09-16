@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import timezone
 
 import pytest
 
@@ -42,6 +42,14 @@ def test_relationships_are_explicit() -> None:
     assert repo.get(child.id) == child
 
 
+def test_relationship_requires_existing_source_entity() -> None:
+    repo = LocalKnowledgeRepository()
+    child = repo.create(make_entity("Repository"))
+    missing_id = make_entity("Missing").id
+    with pytest.raises(KeyError):
+        repo.add_relationship(KnowledgeRelationship(missing_id, "contains", child.id))
+
+
 def test_updates_create_new_version_and_preserve_history() -> None:
     repo = LocalKnowledgeRepository()
     entity = repo.create(make_entity())
@@ -72,12 +80,14 @@ def test_invalidation_never_returns_stale_knowledge_as_active() -> None:
 def test_search_filters_by_kind_and_excludes_invalidated_by_default() -> None:
     repo = LocalKnowledgeRepository()
     architecture = repo.create(make_entity("EIS Architecture"))
-    repo.create(KnowledgeEntity.create(
-        KnowledgeKind.POLICY,
-        "Security Policy",
-        "protect credentials",
-        Provenance.capture(KnowledgeSource.create("policy", "security/policy.md")),
-    ))
+    repo.create(
+        KnowledgeEntity.create(
+            KnowledgeKind.POLICY,
+            "Security Policy",
+            "protect credentials",
+            Provenance.capture(KnowledgeSource.create("policy", "security/policy.md")),
+        )
+    )
     repo.invalidate(architecture.id, "obsolete")
     assert repo.search("architecture") == []
     assert len(repo.search("policy", kind=KnowledgeKind.POLICY)) == 1
@@ -89,15 +99,6 @@ def test_delete_removes_entity() -> None:
     entity = repo.create(make_entity())
     repo.delete(entity.id)
     assert repo.get(entity.id) is None
-
-
-def test_invalid_relationship_source_is_rejected() -> None:
-    repo = LocalKnowledgeRepository()
-    entity = repo.create(make_entity())
-    with pytest.raises(KeyError):
-        repo.add_relationship(KnowledgeRelationship(entity.id, "contains", entity.id)) if False else repo.add_relationship(
-            KnowledgeRelationship(entity.id, "contains", entity.id)
-        )
 
 
 def test_entity_rejects_relationship_for_another_source() -> None:
