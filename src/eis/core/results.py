@@ -32,11 +32,11 @@ class Result(Generic[T]):
         return self.status is Status.SUCCEEDED and self.error is None
 
     @classmethod
-    def success(cls, value: T) -> "Result[T]":
+    def success(cls, value: T) -> Result[T]:
         return cls(status=Status.SUCCEEDED, value=value)
 
     @classmethod
-    def failure(cls, error: str, *, status: Status = Status.FAILED) -> "Result[T]":
+    def failure(cls, error: str, *, status: Status = Status.FAILED) -> Result[T]:
         if not error.strip():
             raise ValueError("error must not be empty")
         return cls(status=status, error=error)
