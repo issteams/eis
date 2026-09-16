@@ -55,9 +55,7 @@ class EvidenceItem:
     content: str
     provenance: Provenance
     kind: IntegrityKind = IntegrityKind.FACT
-    confidence: Confidence = field(
-        default_factory=lambda: Confidence(1.0, "source evidence")
-    )
+    confidence: Confidence = field(default_factory=lambda: Confidence(1.0, "source evidence"))
     observed_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     expires_at: datetime | None = None
     claim_key: str | None = None
