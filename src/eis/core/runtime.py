@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Callable
 
 from eis.config import Settings
 from eis.core.context import EISContext
@@ -35,8 +35,8 @@ class EISRuntime:
     _handlers: list[EventHandler] = field(default_factory=list, repr=False)
 
     @classmethod
-    def from_environment(cls) -> "EISRuntime":
-        """Construct a runtime using the process environment configuration."""
+    def from_environment(cls) -> EISRuntime:
+        """Construct a runtime using process environment configuration."""
         return cls(settings=Settings())
 
     def start(self) -> None:
