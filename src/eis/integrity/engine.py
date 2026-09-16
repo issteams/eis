@@ -102,9 +102,10 @@ class DefaultIntegrityEngine:
             else:
                 reasons.append("no attributable evidence supports the claim")
                 status = ValidationStatus.INSUFFICIENT_EVIDENCE
-        elif claim.kind is IntegrityKind.VERIFIED_FACT and len(
-            {item.provenance.source.source_id for item in supporting}
-        ) < 2:
+        elif (
+            claim.kind is IntegrityKind.VERIFIED_FACT
+            and len({item.provenance.source.source_id for item in supporting}) < 2
+        ):
             uncertainties.append(
                 Uncertainty(
                     "verification has only one independent source",
@@ -145,15 +146,9 @@ class DefaultIntegrityEngine:
             if assessment.status is not ValidationStatus.SUPPORTED
         )
         uncertainties = tuple(
-            uncertainty
-            for assessment in assessments
-            for uncertainty in assessment.uncertainty
+            uncertainty for assessment in assessments for uncertainty in assessment.uncertainty
         )
-        invalidators = tuple(
-            invalidator
-            for claim in claims
-            for invalidator in claim.invalidators
-        )
+        invalidators = tuple(invalidator for claim in claims for invalidator in claim.invalidators)
         return HonestResponse(
             answer=answer,
             known=known,
@@ -170,9 +165,7 @@ class DefaultIntegrityEngine:
         objective: str,
         criteria: Sequence[ClaimAssessment],
     ) -> IdeaEvaluation:
-        criterion_records = tuple(
-            IdeaCriterion(item.claim.statement, item) for item in criteria
-        )
+        criterion_records = tuple(IdeaCriterion(item.claim.statement, item) for item in criteria)
         risks = tuple(
             assessment.claim.statement
             for assessment in criteria
