@@ -153,11 +153,7 @@ class AgentToolAdapter:
 
         if not isinstance(step, AgentStep):
             raise TypeError("agent tool adapter requires AgentStep")
-        arguments = (
-            dict(step.input)
-            if isinstance(step.input, dict)
-            else {"input": step.input}
-        )
+        arguments = dict(step.input) if isinstance(step.input, dict) else {"input": step.input}
         if step.resource is not None:
             arguments.setdefault("resource", step.resource)
         return await self._executor.execute(
