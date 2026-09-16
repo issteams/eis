@@ -20,7 +20,11 @@ When evidence is insufficient, EIS must be able to say so. It must never manufac
 
 ## Foundation status
 
-This repository currently contains the production-grade architectural foundation only. Complex AI behavior, autonomous loops, provider integrations, vector databases and side-effecting tools are intentionally not implemented yet.
+The repository contains the production-grade architectural foundation of EIS. Implemented foundation phases include the core runtime, knowledge system, memory system, integrity engine, and provider-independent model abstraction layer.
+
+The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces, while retry, timeout, rate-limit and tracing concerns are handled by the model runtime boundary.
+
+Live provider credentials, autonomous loops, vector databases and side-effecting tools are intentionally not enabled by the foundation.
 
 ## Architecture
 
@@ -32,6 +36,7 @@ src/eis/
 ├── memory/        # session/agent memory boundary
 ├── reasoning/     # evidence-aware reasoning contracts
 ├── integrity/     # provenance and honesty invariants
+├── models/        # provider-independent model abstraction
 ├── agents/        # agent capability/lifecycle contracts
 ├── tools/         # explicit external capability contracts
 ├── execution/     # controlled side effects
