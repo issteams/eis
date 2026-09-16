@@ -7,6 +7,7 @@ from eis.agents.models import (
     AgentPermission,
     AgentResult,
     AgentState,
+    AgentStep,
     AgentTask,
 )
 from eis.agents.protocols import EscalationHandler, Observer, Planner, Policy, Tool
@@ -64,11 +65,13 @@ class AgentRuntime:
                 observations=tuple(observations),
             )
 
-    def _authorize(self, agent: Agent, step: object) -> None:
-        action = getattr(step, "action")
-        resource = getattr(step, "resource")
+    def _authorize(self, agent: Agent, step: AgentStep) -> None:
+        action = step.action
+        resource = step.resource
         permission = AgentPermission(action, resource or "*")
-        allowed = permission in agent.permissions or AgentPermission(action, "*") in agent.permissions
+        allowed = permission in agent.permissions or (
+            AgentPermission(action, "*") in agent.permissions
+        )
         if not allowed:
             raise PermissionDeniedError(f"permission denied: {action}:{resource}")
         for policy in self._policies:
