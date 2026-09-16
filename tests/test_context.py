@@ -58,7 +58,10 @@ def test_keyword_relevance_prefers_matching_content() -> None:
     relevant = retriever.retrieve(
         query,
         [
-            item("EIS architecture and retrieval", SourceKind.KNOWLEDGE),
+            item(
+                "EIS architecture and retrieval",
+                SourceKind.KNOWLEDGE,
+            ),
             item("billing only", SourceKind.MEMORY),
         ],
     )
@@ -92,14 +95,22 @@ def test_metadata_filtering() -> None:
 def test_source_priority_and_authority_affect_ranking() -> None:
     scorer = ContextScorer()
     memory = item("same answer", SourceKind.MEMORY, authority=0.4)
-    knowledge = item("same answer authoritative", SourceKind.KNOWLEDGE, authority=1.0)
+    knowledge = item(
+        "same answer authoritative",
+        SourceKind.KNOWLEDGE,
+        authority=1.0,
+    )
     ranked = scorer.rank([memory, knowledge])
     assert ranked[0].provenance.source_kind is SourceKind.KNOWLEDGE
 
 
 def test_conflicting_sources_preserve_both_provenances() -> None:
     first = item("the timeout is 30 seconds", SourceKind.MEMORY, authority=0.4)
-    second = item("the timeout is 60 seconds", SourceKind.DOCUMENTATION, authority=1.0)
+    second = item(
+        "the timeout is 60 seconds",
+        SourceKind.DOCUMENTATION,
+        authority=1.0,
+    )
     result = deduplicate([first, second])
     assert len(result) == 2
     assert {entry.provenance.source_kind for entry in result} == {
@@ -127,7 +138,11 @@ def test_context_builder_deduplicates_and_respects_character_limit() -> None:
         retriever = InMemoryRetriever([repeated, memory, second])
         builder = ContextBuilder((retriever,))
         result = await builder.build(
-            ContextRequest("repository context", limit=10, max_characters=30)
+            ContextRequest(
+                "repository context",
+                limit=10,
+                max_characters=30,
+            )
         )
         assert len(result.items) == 1
         assert result.items[0].provenance.source_kind is SourceKind.REPOSITORY
