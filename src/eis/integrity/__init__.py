@@ -1,8 +1,11 @@
 """Evidence, provenance, honest assessment and integrity enforcement."""
 
 from eis.integrity.engine import (
+    DefaultContradictionDetector,
     DefaultFreshnessChecker,
     DefaultIntegrityEngine,
+    DefaultProvenanceTracker,
+    InMemoryEvidenceTracker,
     SimpleConfidenceCalibrator,
 )
 from eis.integrity.models import (
@@ -34,14 +37,17 @@ __all__ = [
     "Confidence",
     "ConfidenceCalibrator",
     "ContradictionDetector",
+    "DefaultContradictionDetector",
     "DefaultFreshnessChecker",
     "DefaultIntegrityEngine",
+    "DefaultProvenanceTracker",
     "EvidenceItem",
     "EvidenceTracker",
     "FreshnessChecker",
     "HonestResponse",
     "IdeaCriterion",
     "IdeaEvaluation",
+    "InMemoryEvidenceTracker",
     "IntegrityEngine",
     "IntegrityKind",
     "ProvenanceTracker",
