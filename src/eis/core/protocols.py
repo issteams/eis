@@ -1,13 +1,15 @@
 """Stable contracts shared by EIS domains.
 
 Concrete adapters belong outside these contracts so the core remains provider-agnostic.
+Model operations are defined exclusively by ``eis.models``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
+
+from eis.models.interfaces import Model
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,16 +27,6 @@ class Decision:
     evidence: tuple[Evidence, ...] = ()
     uncertainty: str | None = None
     proposed_action: str | None = None
-
-
-@runtime_checkable
-class Model(Protocol):
-    async def generate(self, prompt: str, *, system: str | None = None) -> str: ...
-
-
-@runtime_checkable
-class Embedder(Protocol):
-    async def embed(self, texts: Sequence[str]) -> list[list[float]]: ...
 
 
 @runtime_checkable
@@ -71,3 +63,16 @@ class Agent(Protocol):
     name: str
 
     async def run(self, task: str, *, context: dict[str, Any] | None = None) -> Any: ...
+
+
+__all__ = [
+    "Agent",
+    "Decision",
+    "Evaluator",
+    "Executor",
+    "Evidence",
+    "KnowledgeStore",
+    "Model",
+    "Repository",
+    "Tool",
+]
