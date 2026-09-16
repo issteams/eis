@@ -55,7 +55,11 @@ def test_path_traversal_is_rejected(tmp_path: Path):
 def test_secure_executor_denies_missing_permission(tmp_path: Path):
     audit = InMemoryAuditSink()
     executor = SecureExecutor({"filesystem": FilesystemTool(tmp_path)}, audit=audit)
-    result = run(executor.execute(ToolRequest("filesystem", {"operation": "read", "path": "x"})))
+    result = run(
+        executor.execute(
+            ToolRequest("filesystem", {"operation": "read", "path": "x"})
+        )
+    )
     assert result.status is ExecutionStatus.DENIED
     assert len(audit.events) == 1
     assert audit.events[0].status is ExecutionStatus.DENIED
@@ -66,7 +70,11 @@ def test_prohibited_python_never_executes():
     executor = SecureExecutor({"python": PythonExecutionTool()}, audit=audit)
     result = run(
         executor.execute(
-            ToolRequest("python", {"code": "raise SystemExit"}, frozenset({"python.execute"}))
+            ToolRequest(
+                "python",
+                {"code": "raise SystemExit"},
+                frozenset({"python.execute"}),
+            )
         )
     )
     assert result.status is ExecutionStatus.DENIED
@@ -78,7 +86,11 @@ def test_shell_rejects_arbitrary_commands():
     with pytest.raises(ToolSecurityError, match="not allowlisted"):
         run(
             tool.execute(
-                ToolRequest("shell", {"argv": ["rm", "-rf", "/"]}, frozenset({"shell.execute"}))
+                ToolRequest(
+                    "shell",
+                    {"argv": ["rm", "-rf", "/"]},
+                    frozenset({"shell.execute"}),
+                )
             )
         )
 
@@ -88,7 +100,11 @@ def test_shell_rejects_shell_metacharacters():
     with pytest.raises(ToolSecurityError, match="metacharacters"):
         run(
             tool.execute(
-                ToolRequest("shell", {"argv": ["echo", "ok", ";", "id"]}, frozenset({"shell.execute"}))
+                ToolRequest(
+                    "shell",
+                    {"argv": ["echo", "ok", ";", "id"]},
+                    frozenset({"shell.execute"}),
+                )
             )
         )
 
@@ -145,7 +161,7 @@ def test_output_is_capped():
 
 def test_write_requires_write_permission(tmp_path: Path):
     tool = FilesystemTool(tmp_path)
-    with pytest.raises(ToolSecurityError, match="filesystem.write"):
+    with pytest.raises(ToolSecurityError, match=r"filesystem\.write"):
         run(
             tool.execute(
                 ToolRequest(
