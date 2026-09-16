@@ -53,7 +53,7 @@ def test_settings_are_typed_and_have_safe_defaults() -> None:
     assert settings.runtime_name == "eis"
 
 
-def test_environment_and_runtime_name_are_loaded_from_environment(monkeypatch) -> None:
+def test_environment_and_runtime_name_are_loaded_from_environment() -> None:
     settings = Settings(_env_file=None, environment="production", runtime_name="runtime-test")
     assert settings.environment is Environment.PRODUCTION
     assert settings.runtime_name == "runtime-test"
@@ -146,7 +146,7 @@ def test_identity_rejects_blank_names() -> None:
         CompanyIdentity.create("   ")
 
 
-def test_hierarchy_preserves_echowavs_scope_without_product_hardcoding() -> None:
+def test_hierarchy_preserves_scope_without_product_hardcoding() -> None:
     hierarchy = OrganizationHierarchy(
         company=CompanyIdentity.create("Example Company"),
         division=DivisionIdentity.create("Engineering"),
@@ -155,7 +155,9 @@ def test_hierarchy_preserves_echowavs_scope_without_product_hardcoding() -> None
         repository=RepositoryIdentity.create("repo-z"),
         task=TaskIdentity.create("task-1"),
     )
-    assert hierarchy.scope() == "Example Company / Engineering / Product X / Project Y / repo-z / task-1"
+    assert hierarchy.scope() == (
+        "Example Company / Engineering / Product X / Project Y / repo-z / task-1"
+    )
     assert len(hierarchy.ids()) == 6
 
 
@@ -165,7 +167,12 @@ def test_organization_configuration_is_generic() -> None:
         divisions=(
             DivisionConfig(
                 name="Division A",
-                products=(ProductConfig(name="Product A", projects=(ProjectConfig(name="Project A"),)),),
+                products=(
+                    ProductConfig(
+                        name="Product A",
+                        projects=(ProjectConfig(name="Project A"),),
+                    ),
+                ),
             ),
         ),
     )
