@@ -6,7 +6,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from eis.context.models import ContextRequest, ContextResult, Query
+from eis.context.models import ContextRequest, ContextResult
 from eis.engineering.models import (
     ChangeRecord,
     EngineeringLimits,
@@ -46,11 +46,7 @@ class InMemoryChangeTracker:
 
 
 class EngineeringAgent:
-    """Run a bounded repository-aware implementation workflow.
-
-    Planning and validation are mandatory gates. The implementation tool is not
-    invoked until the repository has been inspected and the plan is accepted.
-    """
+    """Run a bounded repository-aware implementation workflow."""
 
     def __init__(
         self,
@@ -87,10 +83,8 @@ class EngineeringAgent:
         try:
             self._guard()
             records.append(ChangeRecord(EngineeringPhase.UNDERSTAND, detail=task.objective))
-
             context = await self._retrieve(task)
             records.append(ChangeRecord(EngineeringPhase.RETRIEVE, detail="project knowledge retrieved"))
-
             snapshot = await self._inspect(task)
             records.append(
                 ChangeRecord(
@@ -98,9 +92,7 @@ class EngineeringAgent:
                     detail=f"inspected {len(snapshot.files)} repository files",
                 )
             )
-            records.append(
-                ChangeRecord(EngineeringPhase.ARCHITECTURE, detail="architecture inspection complete")
-            )
+            records.append(ChangeRecord(EngineeringPhase.ARCHITECTURE, detail="architecture inspection complete"))
             records.append(
                 ChangeRecord(
                     EngineeringPhase.AFFECTED_COMPONENTS,
@@ -114,16 +106,12 @@ class EngineeringAgent:
                 )
             )
             records.append(
-                ChangeRecord(
-                    EngineeringPhase.DUPLICATION,
-                    detail="duplication candidates supplied to planner",
-                )
+                ChangeRecord(EngineeringPhase.DUPLICATION, detail="duplication candidates supplied to planner")
             )
 
             self._guard()
             plan = await self._planner.plan(task, snapshot, context)
             records.append(ChangeRecord(EngineeringPhase.PLAN, detail=plan.rationale))
-
             self._guard()
             valid, reason = await self._validator.validate(task, snapshot, plan)
             records.append(ChangeRecord(EngineeringPhase.VALIDATE_PLAN, detail=reason))
