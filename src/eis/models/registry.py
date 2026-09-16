@@ -8,8 +8,8 @@ from eis.config.settings import Settings
 from eis.models.errors import ModelConfigurationError
 from eis.models.fakes import FakeModelProvider
 from eis.models.interfaces import Model, ModelProvider
-from eis.models.runtime import ReliableModel
 from eis.models.policy import RetryPolicy
+from eis.models.runtime import ReliableModel
 
 
 class ModelRegistry:
