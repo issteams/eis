@@ -4,12 +4,10 @@ from eis.agents import (
     Agent,
     AgentPermission,
     AgentPlan,
-    AgentResult,
     AgentRuntime,
     AgentState,
     AgentStep,
     AgentTask,
-    PermissionDeniedError,
 )
 
 
