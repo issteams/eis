@@ -50,7 +50,11 @@ def test_query_normalization_removes_noise_and_deduplicates_terms() -> None:
 
 def test_keyword_relevance_prefers_matching_content() -> None:
     retriever = KeywordRetriever()
-    query = Query("architecture retrieval", "architecture retrieval", ("architecture", "retrieval"))
+    query = Query(
+        "architecture retrieval",
+        "architecture retrieval",
+        ("architecture", "retrieval"),
+    )
     relevant = retriever.retrieve(
         query,
         [
@@ -66,8 +70,16 @@ def test_metadata_filtering() -> None:
     async def run() -> None:
         retriever = InMemoryRetriever(
             [
-                item("project alpha", SourceKind.PROJECT, metadata={"project": "alpha"}),
-                item("project beta", SourceKind.PROJECT, metadata={"project": "beta"}),
+                item(
+                    "project alpha",
+                    SourceKind.PROJECT,
+                    metadata={"project": "alpha"},
+                ),
+                item(
+                    "project beta",
+                    SourceKind.PROJECT,
+                    metadata={"project": "beta"},
+                ),
             ]
         )
         query = QueryNormalizer().normalize("project")
@@ -106,7 +118,11 @@ def test_stale_source_scores_below_fresh_source() -> None:
 def test_context_builder_deduplicates_and_respects_character_limit() -> None:
     async def run() -> None:
         repeated = item("important repository context", SourceKind.REPOSITORY)
-        memory = item("important repository context", SourceKind.MEMORY, authority=0.3)
+        memory = item(
+            "important repository context",
+            SourceKind.MEMORY,
+            authority=0.3,
+        )
         second = item("additional context", SourceKind.DOCUMENTATION)
         retriever = InMemoryRetriever([repeated, memory, second])
         builder = ContextBuilder((retriever,))
