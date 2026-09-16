@@ -1,8 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-import pytest
-
 from eis.context import (
     ContextBuilder,
     ContextItem,
@@ -12,7 +10,13 @@ from eis.context import (
     Query,
     SourceKind,
 )
-from eis.context.retrieval import ContextScorer, KeywordRetriever, QueryNormalizer, deduplicate, freshness
+from eis.context.retrieval import (
+    ContextScorer,
+    KeywordRetriever,
+    QueryNormalizer,
+    deduplicate,
+    freshness,
+)
 
 
 def item(
@@ -31,7 +35,11 @@ def item(
         captured_at=datetime.now(UTC) - timedelta(days=age_days),
         metadata=metadata or {},
     )
-    return ContextItem.create(content, provenance, freshness=freshness(age_days * 86400, 86400))
+    return ContextItem.create(
+        content,
+        provenance,
+        freshness=freshness(age_days * 86400, 86400),
+    )
 
 
 def test_query_normalization_removes_noise_and_deduplicates_terms() -> None:
