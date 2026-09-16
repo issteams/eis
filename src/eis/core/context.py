@@ -19,7 +19,7 @@ class EISContext:
     correlation_id: CorrelationId
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def child(self, *, metadata: dict[str, Any] | None = None) -> "EISContext":
+    def child(self, *, metadata: dict[str, Any] | None = None) -> EISContext:
         """Create a context preserving correlation while extending metadata."""
         merged = dict(self.metadata)
         if metadata:
