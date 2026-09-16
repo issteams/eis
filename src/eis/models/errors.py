@@ -6,7 +6,13 @@ from __future__ import annotations
 class ModelError(Exception):
     """Base error for model operations."""
 
-    def __init__(self, message: str, *, provider: str | None = None, retryable: bool = False) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        provider: str | None = None,
+        retryable: bool = False,
+    ) -> None:
         super().__init__(message)
         self.provider = provider
         self.retryable = retryable
@@ -27,7 +33,13 @@ class ModelTimeoutError(ModelError):
 class ModelRateLimitError(ModelError):
     """The provider rate-limited a request."""
 
-    def __init__(self, message: str, *, retry_after: float | None = None, provider: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        retry_after: float | None = None,
+        provider: str | None = None,
+    ) -> None:
         super().__init__(message, provider=provider, retryable=True)
         self.retry_after = retry_after
 
