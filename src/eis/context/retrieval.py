@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from math import exp
+import re
 
 from eis.context.models import ContextItem, Query, SourceKind
 
