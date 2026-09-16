@@ -43,7 +43,8 @@ class UsageLedger:
     estimated_cost: float = 0.0
 
     def record(
-        self, response: GenerationResponse | StructuredGenerationResponse | EmbeddingResponse
+        self,
+        response: GenerationResponse | StructuredGenerationResponse | EmbeddingResponse,
     ) -> UsageLedger:
         usage = response.usage
         return UsageLedger(
@@ -83,9 +84,7 @@ class ReliableModel:
     async def generate_structured(
         self, request: StructuredGenerationRequest
     ) -> StructuredGenerationResponse:
-        response = await self._call(
-            "generate_structured", request, self._model.generate_structured
-        )
+        response = await self._call("generate_structured", request, self._model.generate_structured)
         self._usage = self._usage.record(response)
         return response
 
