@@ -11,29 +11,9 @@ from eis.context.models import ContextItem, Query, SourceKind
 
 _STOPWORDS = frozenset(
     [
-        "a",
-        "an",
-        "and",
-        "are",
-        "as",
-        "at",
-        "be",
-        "by",
-        "for",
-        "from",
-        "in",
-        "is",
-        "it",
-        "of",
-        "on",
-        "or",
-        "that",
-        "the",
-        "this",
-        "to",
-        "was",
-        "were",
-        "with",
+        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
+        "in", "is", "it", "of", "on", "or", "that", "the", "this", "to",
+        "was", "were", "with",
     ]
 )
 
@@ -79,7 +59,11 @@ class KeywordRetriever:
 
     @staticmethod
     def _with_score(item: ContextItem, relevance: float) -> ContextItem:
-        score = relevance * 0.55 + item.provenance.authority * 0.30 + item.freshness * 0.15
+        score = (
+            relevance * 0.55
+            + item.provenance.authority * 0.30
+            + item.freshness * 0.15
+        )
         return ContextItem(
             item.id,
             item.content,
