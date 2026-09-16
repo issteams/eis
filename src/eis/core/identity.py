@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Self
 from uuid import UUID, uuid4
 
 
@@ -14,7 +15,7 @@ class Identity:
     name: str
 
     @classmethod
-    def create(cls, name: str) -> "Identity":
+    def create(cls, name: str) -> Self:
         if not name.strip():
             raise ValueError("identity name must not be empty")
         return cls(id=uuid4(), name=name.strip())
@@ -65,7 +66,7 @@ class RequestIdentity(Identity):
     """Identity of an individual request within a session."""
 
     @classmethod
-    def create(cls, name: str = "request") -> "RequestIdentity":
+    def create(cls, name: str = "request") -> Self:
         return cls(id=uuid4(), name=name.strip() or "request")
 
 
@@ -76,7 +77,7 @@ class CorrelationId:
     value: UUID
 
     @classmethod
-    def create(cls) -> "CorrelationId":
+    def create(cls) -> CorrelationId:
         return cls(value=uuid4())
 
     def __str__(self) -> str:

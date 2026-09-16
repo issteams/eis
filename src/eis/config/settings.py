@@ -1,15 +1,28 @@
 """Typed, environment-driven EIS configuration."""
 
+from enum import StrEnum
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class Environment(StrEnum):
+    """Supported EIS runtime environments."""
+
+    DEVELOPMENT = "development"
+    TESTING = "testing"
+    STAGING = "staging"
+    PRODUCTION = "production"
+
+
 class Settings(BaseSettings):
+    """Validated runtime configuration loaded from environment variables."""
+
     model_config = SettingsConfigDict(env_prefix="EIS_", env_file=".env", extra="ignore")
 
-    environment: str = "development"
+    environment: Environment = Environment.DEVELOPMENT
+    runtime_name: str = Field(default="eis", min_length=1)
     log_level: str = "INFO"
     model_provider: str = "none"
     embedding_provider: str = "none"
@@ -20,4 +33,5 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Return the process-wide validated settings instance."""
     return Settings()

@@ -23,3 +23,15 @@ class ProviderError(EISError):
 
 class SecurityError(EISError):
     """A security policy prevented an operation."""
+
+
+class LifecycleError(EISError):
+    """A runtime lifecycle transition is invalid."""
+
+
+class ContextError(EISError):
+    """A runtime context is invalid or incomplete."""
+
+
+class ResultError(EISError):
+    """A result violates a result invariant."""
