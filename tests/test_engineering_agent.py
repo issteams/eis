@@ -58,7 +58,12 @@ class FixtureTools:
         if request.tool == "engineering.implement":
             return ToolResult(
                 ExecutionStatus.SUCCESS,
-                output={"changes": [FileChange("fixture.py", "modify", "updated fixture")]},
+                output={
+                    "changes": [
+                        FileChange("fixture.py", "modify", "updated fixture"),
+                        FileChange("test_fixture.py", "modify", "added coverage"),
+                    ]
+                },
             )
         if request.tool == "engineering.test.targeted" and self.fail_targeted:
             return ToolResult(ExecutionStatus.FAILED, error="targeted test failed")
@@ -110,7 +115,7 @@ def test_rejected_plan_never_starts_implementation(tmp_path):
 
 
 def test_file_change_limit_escalates(tmp_path):
-    agent, tools = make_agent(tmp_path, limits=EngineeringLimits(max_files_changed=0))
+    agent, tools = make_agent(tmp_path, limits=EngineeringLimits(max_files_changed=1))
 
     report = asyncio.run(agent.run(EngineeringTask("feature", str(tmp_path))))
 
