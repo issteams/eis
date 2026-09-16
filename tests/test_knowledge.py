@@ -1,13 +1,22 @@
-from datetime import timezone
+from datetime import UTC
 
 import pytest
 
 from eis.adapters.knowledge.local import LocalKnowledgeRepository
-from eis.knowledge import KnowledgeEntity, KnowledgeKind, KnowledgeRelationship, KnowledgeSource, KnowledgeStatus, Provenance
+from eis.knowledge import (
+    KnowledgeEntity,
+    KnowledgeKind,
+    KnowledgeRelationship,
+    KnowledgeSource,
+    KnowledgeStatus,
+    Provenance,
+)
 
 
 def make_entity(name: str = "Architecture") -> KnowledgeEntity:
-    source = KnowledgeSource.create("document", "docs/architecture.md", authority="echowavs")
+    source = KnowledgeSource.create(
+        "document", "docs/architecture.md", authority="echowavs"
+    )
     return KnowledgeEntity.create(
         KnowledgeKind.ARCHITECTURE,
         name,
@@ -29,7 +38,7 @@ def test_structured_content_and_provenance_are_retained() -> None:
     assert entity.active_version is not None
     assert entity.active_version.provenance.source.locator == "docs/architecture.md"
     assert entity.active_version.provenance.source_version == "abc123"
-    assert entity.active_version.created_at.tzinfo == timezone.utc
+    assert entity.active_version.created_at.tzinfo == UTC
 
 
 def test_relationships_are_explicit() -> None:
@@ -54,7 +63,8 @@ def test_updates_create_new_version_and_preserve_history() -> None:
     repo = LocalKnowledgeRepository()
     entity = repo.create(make_entity())
     source = KnowledgeSource.create("git", "repo@def456", authority="echowavs")
-    updated = entity.with_version("updated architecture", Provenance.capture(source, source_version="def456"))
+    provenance = Provenance.capture(source, source_version="def456")
+    updated = entity.with_version("updated architecture", provenance)
     repo.update(updated)
     stored = repo.get(entity.id)
     assert stored is not None
