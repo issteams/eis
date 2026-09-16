@@ -11,7 +11,9 @@ from typing import Any
 
 from eis.tools.models import (
     AuditEvent,
+    ExecutionPolicy,
     ExecutionStatus,
+    RiskLevel,
     ToolDefinition,
     ToolRequest,
     ToolResult,
@@ -50,11 +52,12 @@ class SecureExecutor:
 
     async def execute(self, request: ToolRequest) -> ToolResult:
         started = time.monotonic()
-        definition = self._definition(request.tool)
+        definition: ToolDefinition | None = None
         status = ExecutionStatus.FAILED
         error: str | None = None
         result = ToolResult(ExecutionStatus.FAILED, request_id=request.request_id)
         try:
+            definition = self._definition(request.tool)
             self._limits.validate(definition, request)
             missing = set(definition.permissions) - set(request.granted_permissions)
             if missing:
@@ -69,7 +72,11 @@ class SecureExecutor:
             return result
         except TimeoutError:
             status = ExecutionStatus.TIMEOUT
-            error = f"tool timed out after {definition.timeout_seconds:.3f}s"
+            error = (
+                f"tool timed out after {definition.timeout_seconds:.3f}s"
+                if definition is not None
+                else "tool timed out"
+            )
             return ToolResult(status, error=error, request_id=request.request_id)
         except (ToolSecurityError, PermissionError) as exc:
             status = ExecutionStatus.DENIED
@@ -80,6 +87,15 @@ class SecureExecutor:
             error = str(exc)
             return ToolResult(status, error=error, request_id=request.request_id)
         finally:
+            if definition is None:
+                definition = ToolDefinition(
+                    request.tool,
+                    "unregistered tool",
+                    ToolSchemaPlaceholder.input,
+                    ToolSchemaPlaceholder.output,
+                    risk_level=RiskLevel.CRITICAL,
+                    execution_policy=ExecutionPolicy.PROHIBITED,
+                )
             self._audit.record(
                 AuditEvent(
                     request_id=request.request_id,
@@ -196,3 +212,10 @@ def safe_path(root: Path, requested: str) -> Path:
     except ValueError as exc:
         raise ToolSecurityError("path escapes tool root") from exc
     return candidate
+
+
+class ToolSchemaPlaceholder:
+    """Internal schema stand-in used only for audit records of unknown tools."""
+
+    input = __import__("eis.tools.models", fromlist=["ToolSchema"]).ToolSchema()
+    output = input
