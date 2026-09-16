@@ -82,7 +82,7 @@ def test_stale_memory_is_invalidated_and_hidden_by_default() -> None:
 
 def test_uncertain_memory_is_retrieved_with_confidence_intact() -> None:
     repo = LocalMemoryRepository()
-    memory = repo.store(make_memory(kind=MemoryKind.UNKNOWN, confidence=0.1))
+    repo.store(make_memory(kind=MemoryKind.UNKNOWN, confidence=0.1))
     recalled = repo.recall("deployment")[0]
     assert recalled.kind is MemoryKind.UNKNOWN
     assert recalled.confidence == 0.1
