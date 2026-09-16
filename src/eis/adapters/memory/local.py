@@ -47,7 +47,11 @@ class LocalMemoryRepository:
                 continue
             if needle in str(memory.content).casefold():
                 records.append(memory)
-        return sorted(records, key=lambda item: (item.relevance, item.observed_at), reverse=True)[:limit]
+        return sorted(
+            records,
+            key=lambda item: (item.relevance, item.observed_at),
+            reverse=True,
+        )[:limit]
 
     def update(self, memory: MemoryRecord) -> MemoryRecord:
         if memory.id not in self._records:
