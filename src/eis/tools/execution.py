@@ -20,7 +20,7 @@ from eis.tools.models import (
     ToolSchema,
 )
 from eis.tools.policies import ExecutionLimits, SecurityPolicy, ToolSecurityError
-from eis.tools.protocols import AuditSink, PolicyAuthorizer
+from eis.tools.protocols import AuditSink, PolicyAuthorizer, Tool
 
 
 class ToolExecutionError(RuntimeError):
@@ -40,7 +40,7 @@ class SecureExecutor:
 
     def __init__(
         self,
-        tools: dict[str, Any],
+        tools: dict[str, Tool],
         *,
         audit: AuditSink,
         policy: PolicyAuthorizer | None = None,
@@ -153,10 +153,17 @@ class AgentToolAdapter:
 
         if not isinstance(step, AgentStep):
             raise TypeError("agent tool adapter requires AgentStep")
+        arguments = (
+            dict(step.input)
+            if isinstance(step.input, dict)
+            else {"input": step.input}
+        )
+        if step.resource is not None:
+            arguments.setdefault("resource", step.resource)
         return await self._executor.execute(
             ToolRequest(
                 self.name,
-                {"step": step.input, "resource": step.resource},
+                arguments,
                 self._granted_permissions,
             )
         )
