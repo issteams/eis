@@ -1,4 +1,5 @@
 """Typed, environment-driven EIS configuration."""
+
 from functools import lru_cache
 
 from pydantic import Field
