@@ -9,6 +9,7 @@ from typing import Callable
 from eis.config import Settings
 from eis.core.context import EISContext
 from eis.core.events import EISEvent
+from eis.core.hierarchy import OrganizationHierarchy
 from eis.core.identity import CorrelationId, EISIdentity, RequestIdentity, SessionIdentity
 
 
@@ -36,8 +37,7 @@ class EISRuntime:
         """Start the runtime exactly once."""
         if self.state is RuntimeState.STOPPED:
             raise RuntimeError("stopped EIS runtime cannot be restarted")
-        if self.state is RuntimeState.CREATED:
-            self.state = RuntimeState.STARTED
+        self.state = RuntimeState.STARTED
 
     def stop(self) -> None:
         """Stop the runtime."""
@@ -55,14 +55,14 @@ class EISRuntime:
 
     def create_context(
         self,
-        hierarchy: object,
+        hierarchy: OrganizationHierarchy,
         *,
         session: SessionIdentity | None = None,
         request: RequestIdentity | None = None,
     ) -> EISContext:
-        """Create request context; hierarchy is validated by EISContext's type contract."""
+        """Create a request context with a fresh correlation identifier."""
         return EISContext(
-            hierarchy=hierarchy,  # type: ignore[arg-type]
+            hierarchy=hierarchy,
             session=session or SessionIdentity.create("session"),
             request=request or RequestIdentity.create(),
             correlation_id=CorrelationId.create(),
