@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from eis.adapters.models import OpenAICompatibleModel
+from eis.adapters.models import OpenAICompatibleModel, OpenAICompatibleProvider
 from eis.config.settings import Settings
 from eis.models import (
     EmbeddingRequest,
@@ -55,7 +55,7 @@ def test_reliable_model_retries_transient_failures_and_tracks_usage() -> None:
 
 def test_reliable_model_timeout_becomes_structured_error() -> None:
     class SlowModel(FakeModel):
-        async def generate(self, request: GenerationRequest):
+        async def generate(self, request: GenerationRequest) -> object:
             await asyncio.sleep(0.02)
             return await super().generate(request)
 
@@ -97,9 +97,29 @@ def test_registry_rejects_unknown_provider() -> None:
     asyncio.run(run())
 
 
-def test_usage_rejects_negative_values() -> None:
+def test_openai_compatible_provider_builds_configured_model() -> None:
+    async def run() -> None:
+        settings = Settings(
+            model_provider="openrouter",
+            model_name="example-model",
+            model_base_url="https://example.test/v1",
+            model_api_key="secret",
+        )
+        provider = OpenAICompatibleProvider(settings)
+        model = await provider.get_model()
+        assert model.metadata.provider == "openrouter"
+        assert model.metadata.model == "example-model"
+
+    asyncio.run(run())
+
+
+def test_usage_and_retry_policy_validate_inputs() -> None:
     with pytest.raises(ValueError):
         Usage(input_tokens=-1)
+    with pytest.raises(ValueError):
+        RetryPolicy(max_attempts=0)
+    with pytest.raises(ValueError):
+        RetryPolicy(initial_delay=2, max_delay=1)
 
 
 def test_openai_compatible_adapter_translates_tool_definition() -> None:
