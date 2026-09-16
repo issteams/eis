@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
 
 from eis.integrity.models import (
     Claim,
@@ -24,9 +23,7 @@ class DefaultIntegrityEngine:
         claim: Claim,
         evidence: Sequence[EvidenceItem],
     ) -> ClaimAssessment:
-        matching = tuple(
-            item for item in evidence if self._matches_claim(claim, item)
-        )
+        matching = tuple(item for item in evidence if self._matches_claim(claim, item))
         fresh = tuple(item for item in matching if item.is_fresh)
         stale = tuple(item for item in matching if not item.is_fresh)
         supporting = tuple(item for item in fresh if self._supports(claim, item))
@@ -59,8 +56,6 @@ class DefaultIntegrityEngine:
             else:
                 reasons.append("no attributable evidence supports the claim")
                 status = ValidationStatus.INSUFFICIENT_EVIDENCE
-        elif not fresh:
-            status = ValidationStatus.INSUFFICIENT_EVIDENCE
         elif claim.kind is IntegrityKind.VERIFIED_FACT and len(
             {item.provenance.source.source_id for item in supporting}
         ) < 2:
@@ -72,6 +67,8 @@ class DefaultIntegrityEngine:
                 )
             )
             status = ValidationStatus.QUESTIONABLE
+        elif claim.metadata.get("technical_risk"):
+            status = ValidationStatus.TECHNICALLY_RISKY
         else:
             status = ValidationStatus.SUPPORTED
 
@@ -134,6 +131,7 @@ class DefaultIntegrityEngine:
             assessment.claim.statement
             for assessment in criteria
             if assessment.claim.metadata.get("risk")
+            or assessment.claim.metadata.get("technical_risk")
         )
         unknowns = tuple(
             assessment.claim.statement
