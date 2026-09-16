@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
+
 from eis.core.protocols import Evidence
 
 
