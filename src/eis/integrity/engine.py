@@ -96,11 +96,11 @@ class DefaultIntegrityEngine:
             )
             status = ValidationStatus.QUESTIONABLE
         elif not supporting:
-            if matching:
+            if matching and not stale:
                 reasons.append("available evidence does not support the claim")
                 status = ValidationStatus.UNSUPPORTED
             else:
-                reasons.append("no attributable evidence supports the claim")
+                reasons.append("no fresh evidence supports the claim")
                 status = ValidationStatus.INSUFFICIENT_EVIDENCE
         elif (
             claim.kind is IntegrityKind.VERIFIED_FACT
@@ -248,7 +248,7 @@ class SimpleConfidenceCalibrator:
             raise ValueError("confidence must be between 0 and 1")
         step = 0.05
         adjusted = confidence + step if outcome else confidence - step
-        return max(0.0, min(1.0, adjusted))
+        return round(max(0.0, min(1.0, adjusted)), 10)
 
 
 __all__ = [
