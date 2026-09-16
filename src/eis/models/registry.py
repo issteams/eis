@@ -25,9 +25,7 @@ class ModelRegistry:
         try:
             provider = self._providers[provider_name]
         except KeyError as exc:
-            raise ModelConfigurationError(
-                f"unknown model provider: {provider_name}"
-            ) from exc
+            raise ModelConfigurationError(f"unknown model provider: {provider_name}") from exc
         model = await provider.get_model(settings.model_name or None)
         return ReliableModel(
             model,
