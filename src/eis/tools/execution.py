@@ -17,6 +17,7 @@ from eis.tools.models import (
     ToolDefinition,
     ToolRequest,
     ToolResult,
+    ToolSchema,
 )
 from eis.tools.policies import ExecutionLimits, SecurityPolicy, ToolSecurityError
 from eis.tools.protocols import AuditSink, PolicyAuthorizer
@@ -91,8 +92,8 @@ class SecureExecutor:
                 definition = ToolDefinition(
                     request.tool,
                     "unregistered tool",
-                    ToolSchemaPlaceholder.input,
-                    ToolSchemaPlaceholder.output,
+                    ToolSchema(),
+                    ToolSchema(),
                     risk_level=RiskLevel.CRITICAL,
                     execution_policy=ExecutionPolicy.PROHIBITED,
                 )
@@ -212,10 +213,3 @@ def safe_path(root: Path, requested: str) -> Path:
     except ValueError as exc:
         raise ToolSecurityError("path escapes tool root") from exc
     return candidate
-
-
-class ToolSchemaPlaceholder:
-    """Internal schema stand-in used only for audit records of unknown tools."""
-
-    input = __import__("eis.tools.models", fromlist=["ToolSchema"]).ToolSchema()
-    output = input
