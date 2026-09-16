@@ -8,7 +8,6 @@ from math import exp
 
 from eis.context.models import ContextItem, Query, SourceKind
 
-
 _STOPWORDS = frozenset(
     [
         "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
