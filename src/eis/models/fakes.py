@@ -11,7 +11,6 @@ from eis.models.interfaces import (
     GenerationResponse,
     Model,
     ModelMetadata,
-    ModelProvider,
     StructuredGenerationRequest,
     StructuredGenerationResponse,
     ToolCall,
@@ -43,11 +42,24 @@ class FakeModel:
 
     async def generate(self, request: GenerationRequest) -> GenerationResponse:
         self._maybe_fail()
-        return GenerationResponse(self.response_text, self._metadata, self.usage, self.tool_calls, trace_id=request.trace_id)
+        return GenerationResponse(
+            self.response_text,
+            self._metadata,
+            self.usage,
+            self.tool_calls,
+            trace_id=request.trace_id,
+        )
 
-    async def generate_structured(self, request: StructuredGenerationRequest) -> StructuredGenerationResponse:
+    async def generate_structured(
+        self, request: StructuredGenerationRequest
+    ) -> StructuredGenerationResponse:
         self._maybe_fail()
-        return StructuredGenerationResponse({"response": self.response_text}, self._metadata, self.usage, trace_id=request.trace_id)
+        return StructuredGenerationResponse(
+            {"response": self.response_text},
+            self._metadata,
+            self.usage,
+            trace_id=request.trace_id,
+        )
 
     async def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
         self._maybe_fail()
