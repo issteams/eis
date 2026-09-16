@@ -210,9 +210,7 @@ class OpenAICompatibleModel:
                 "provider request timed out", provider=self.provider
             ) from exc
         except httpx.HTTPError as exc:
-            raise ModelUnavailableError(
-                "provider request failed", provider=self.provider
-            ) from exc
+            raise ModelUnavailableError("provider request failed", provider=self.provider) from exc
 
     async def _raise_for_status(self, response: httpx.Response) -> None:
         if response.status_code == 429:
