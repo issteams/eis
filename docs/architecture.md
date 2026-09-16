@@ -26,7 +26,7 @@ The core defines domain-neutral value objects and protocols. Concrete providers 
 - **knowledge** — canonical, provenance-aware Echowavs knowledge and provider-neutral storage/ingestion contracts.
 - **memory** — contextual and experiential memory distinct from canonical knowledge.
 - **reasoning** — evidence-aware assessment and decision formation; keeps reasoning policy separate from model transport.
-- **integrity** — provenance, evidence validation and honesty invariants; this is the architectural home of the Honest Intelligence principle.
+- **integrity** — claim taxonomy, evidence attribution, freshness, contradiction handling, confidence, uncertainty and Honest Intelligence invariants.
 - **agents** — capability-oriented agent lifecycle; agents orchestrate capabilities rather than owning infrastructure.
 - **tools** — explicit external capabilities with permission boundaries.
 - **execution** — controlled side effects; separates deciding what to do from actually doing it.
@@ -44,6 +44,12 @@ The canonical knowledge model is documented in [Knowledge System](architecture/k
 
 The memory model is documented in [Memory System](architecture/memory-system.md). Memory records are classified as fact, observation, decision, assumption, inference, experience, failure, preference, or unknown, with explicit scope, provenance, confidence, relevance and lifecycle. Conflicting memories remain distinct; invalidated or superseded memories are excluded from normal retrieval. Most importantly, storing a memory never makes it authoritative organizational knowledge.
 
+## Integrity system
+
+The Integrity Engine is documented in [Integrity Engine](architecture/integrity-engine.md). It is a foundational dependency for future reasoning and agents. Claims are explicitly typed as facts, verified facts, observations, inferences, assumptions, opinions, proposals, unknowns, conflicting evidence, or uncertain. Evidence retains provenance and freshness metadata. Claim assessment exposes supporting and contradicting evidence, uncertainty, invalidators, and a bounded confidence basis. The engine does not silently resolve contradictions or manufacture support when evidence is absent.
+
+Idea evaluation is an evidence-based assessment framework covering criterion-level findings, risks, dependencies, unknowns, and investigation paths. Its statuses are descriptive rather than approval/rejection decisions.
+
 ## Honest Intelligence
 
 EIS must preserve the distinction between:
@@ -54,11 +60,11 @@ EIS must preserve the distinction between:
 4. uncertainty or missing evidence;
 5. proposed action.
 
-A future reasoning implementation must not silently convert uncertainty into confidence. Integrity is therefore a first-class boundary rather than a prompt-only convention.
+The Integrity Engine turns these principles into enforceable domain contracts instead of relying only on prompts. Future model-generated claims must pass through these boundaries before becoming trusted inputs to reasoning or agents.
 
 ## Provider neutrality
 
-`Model`, `Embedder`, `KnowledgeStore`, and `Repository` are protocols. Memory storage is also defined by `MemoryRepository`, while summarization is isolated behind `MemorySummarizer`. No domain module imports an LLM SDK, vector database client, or Git provider SDK. Future adapters can target local models, hosted APIs, multiple embedding engines, SQL/vector stores, GitHub, GitLab, or other repository systems without changing the domain contracts.
+`Model`, `Embedder`, `KnowledgeStore`, and `Repository` are protocols. Memory storage is also defined by `MemoryRepository`, while summarization is isolated behind `MemorySummarizer`. Integrity is defined by `IntegrityEngine`, `ClaimValidator`, `ContradictionDetector`, `FreshnessChecker`, `EvidenceTracker`, `ProvenanceTracker`, and `ConfidenceCalibrator`. No domain module imports an LLM SDK, vector database client, or Git provider SDK. Future adapters can target local models, hosted APIs, multiple embedding engines, SQL/vector stores, GitHub, GitLab, or other repository systems without changing the domain contracts.
 
 ## Execution safety
 
@@ -66,4 +72,4 @@ Reasoning produces decisions; execution applies approved actions. Tool calls and
 
 ## Current scope
 
-Phase 1 contains the runtime foundation. Phase 2 adds canonical knowledge models, provenance, relationships, versioning, invalidation, provider-neutral repository and ingestion interfaces, and a local development store. Phase 3 adds first-class memory models, lifecycle-aware local retrieval, confidence/relevance metadata, conflict and uncertainty handling, and summarization interfaces. No advanced AI behavior, LLM integration, vector database, external source connector, or autonomous memory promotion is implemented yet.
+Phase 1 contains the runtime foundation. Phase 2 adds canonical knowledge models, provenance, relationships, versioning, invalidation, provider-neutral repository and ingestion interfaces, and a local development store. Phase 3 adds first-class memory models, lifecycle-aware local retrieval, confidence/relevance metadata, conflict and uncertainty handling, and summarization interfaces. Phase 4 adds the deterministic Integrity Engine, explicit claim/evidence models, contradiction and freshness checks, HonestResponse/IdeaEvaluation structures, confidence calibration interfaces, and hallucination-focused tests. No model-backed semantic judgment, external evidence connector, vector retrieval, or autonomous execution is implemented yet.
