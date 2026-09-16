@@ -8,6 +8,7 @@ from typing import Callable
 
 from eis.config import Settings
 from eis.core.context import EISContext
+from eis.core.errors import LifecycleError
 from eis.core.events import EISEvent
 from eis.core.hierarchy import OrganizationHierarchy
 from eis.core.identity import CorrelationId, EISIdentity, RequestIdentity, SessionIdentity
@@ -33,10 +34,15 @@ class EISRuntime:
     state: RuntimeState = RuntimeState.CREATED
     _handlers: list[EventHandler] = field(default_factory=list, repr=False)
 
+    @classmethod
+    def from_environment(cls) -> "EISRuntime":
+        """Construct a runtime using the process environment configuration."""
+        return cls(settings=Settings())
+
     def start(self) -> None:
-        """Start the runtime exactly once."""
+        """Start the runtime."""
         if self.state is RuntimeState.STOPPED:
-            raise RuntimeError("stopped EIS runtime cannot be restarted")
+            raise LifecycleError("stopped EIS runtime cannot be restarted")
         self.state = RuntimeState.STARTED
 
     def stop(self) -> None:
