@@ -30,12 +30,14 @@ from eis.core import (
     TaskIdentity,
 )
 from eis.core.errors import ConfigurationError, EISError, LifecycleError
-from eis.core.protocols import Decision, Evidence, Model
+from eis.core.protocols import Decision, Evidence
 from eis.evaluation import protocols as evaluation_protocols
 from eis.execution import protocols as execution_protocols
 from eis.integrity import protocols as integrity_protocols
 from eis.knowledge import protocols as knowledge_protocols
 from eis.memory import protocols as memory_protocols
+from eis.models.fakes import FakeModel
+from eis.models.interfaces import Model
 from eis.observability import logging as observability_logging
 from eis.observability import protocols as observability_protocols
 from eis.orchestration import protocols as orchestration_protocols
@@ -94,11 +96,7 @@ def test_error_hierarchy_is_stable() -> None:
     assert issubclass(LifecycleError, EISError)
 
 
-def test_protocol_is_runtime_checkable() -> None:
-    class FakeModel:
-        async def generate(self, prompt: str, *, system: str | None = None) -> str:
-            return prompt
-
+def test_model_protocol_is_runtime_checkable() -> None:
     assert isinstance(FakeModel(), Model)
 
 
