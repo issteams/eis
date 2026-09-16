@@ -190,9 +190,7 @@ def test_idea_with_missing_evidence_needs_investigation() -> None:
     assessment = engine.validate_claim(
         make_claim("The idea will scale to ten million users", claim_key="scale"), []
     )
-    evaluation = engine.evaluate_idea(
-        "Launch the idea", "Serve more users", [assessment]
-    )
+    evaluation = engine.evaluate_idea("Launch the idea", "Serve more users", [assessment])
     assert evaluation.status is ValidationStatus.NEEDS_INVESTIGATION
     assert evaluation.unknowns == (assessment.claim.statement,)
 
