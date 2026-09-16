@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from eis.config.settings import Settings
-from eis.models.interfaces import Model, ModelProvider
 from eis.adapters.models.openai_compatible import OpenAICompatibleModel
+from eis.config.settings import Settings
+from eis.models.interfaces import Model
 
 
 class OpenAICompatibleProvider:
