@@ -5,6 +5,7 @@ from eis.context.models import ContextResult, Query
 from eis.engineering import (
     EngineeringAgent,
     EngineeringLimits,
+    EngineeringPhase,
     EngineeringPlan,
     EngineeringTask,
     FileChange,
@@ -103,8 +104,13 @@ def test_engineering_agent_inspects_and_plans_before_implementation(tmp_path):
 
     assert report.status == "completed"
     assert report.plan is not None
-    assert tools.calls.index("engineering.implement") > 0
-    assert tools.calls[-2:] == ["engineering.test.targeted", "engineering.test.broader"]
+    phases = [record.phase for record in report.changes]
+    assert phases.index(EngineeringPhase.IMPLEMENT) > phases.index(EngineeringPhase.VALIDATE_PLAN)
+    assert tools.calls == [
+        "engineering.implement",
+        "engineering.test.targeted",
+        "engineering.test.broader",
+    ]
     assert report.changes
 
 
