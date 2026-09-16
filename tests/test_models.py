@@ -266,8 +266,8 @@ def test_openai_compatible_adapter_streams_sse(monkeypatch) -> None:
     response = FakeResponse(
         {},
         lines=(
-            "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
-            "data: {\"choices\":[{\"delta\":{\"content\":\" world\"}}]}",
+            'data: {"choices":[{"delta":{"content":"Hello"}}]}',
+            'data: {"choices":[{"delta":{"content":" world"}}]}',
             "data: [DONE]",
         ),
     )
@@ -296,9 +296,7 @@ def test_openai_compatible_adapter_validates_provider_responses() -> None:
 
     async def run() -> None:
         with pytest.raises(ModelRateLimitError):
-            await adapter._raise_for_status(
-                httpx.Response(429, headers={"retry-after": "2"})
-            )
+            await adapter._raise_for_status(httpx.Response(429, headers={"retry-after": "2"}))
         with pytest.raises(ModelUnavailableError):
             await adapter._raise_for_status(httpx.Response(503))
         with pytest.raises(ModelValidationError):
