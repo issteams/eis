@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 from time import monotonic
 from typing import Any, TypeVar
@@ -93,7 +93,7 @@ class ReliableModel:
         self._usage = self._usage.record(response)
         return response
 
-    async def stream(self, request: GenerationRequest):
+    async def stream(self, request: GenerationRequest) -> AsyncIterator[str]:
         trace_id = request.trace_id or uuid.uuid4().hex
         started = monotonic()
         attempts = 0
@@ -159,7 +159,9 @@ class ReliableModel:
                 await asyncio.sleep(self._policy.delay(attempts))
 
     @staticmethod
-    async def _stream_with_timeout(iterator: Any, timeout: float | None):
+    async def _stream_with_timeout(
+        iterator: AsyncIterator[str], timeout: float | None
+    ) -> AsyncIterator[str]:
         if timeout is None:
             async for chunk in iterator:
                 yield chunk
