@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
+import httpx
 import pytest
 
 from eis.adapters.models import OpenAICompatibleModel, OpenAICompatibleProvider
@@ -16,10 +17,65 @@ from eis.models import (
     ToolDefinition,
     Usage,
 )
-from eis.models.errors import ModelTimeoutError
+from eis.models.errors import (
+    ModelRateLimitError,
+    ModelTimeoutError,
+    ModelUnavailableError,
+    ModelValidationError,
+)
 from eis.models.fakes import FakeModel, FakeModelProvider
 from eis.models.registry import ModelRegistry
 from eis.models.runtime import ReliableModel
+
+
+class FakeResponse:
+    def __init__(
+        self,
+        payload: dict,
+        *,
+        status_code: int = 200,
+        headers: dict[str, str] | None = None,
+        lines: tuple[str, ...] = (),
+    ) -> None:
+        self.payload = payload
+        self.status_code = status_code
+        self.headers = headers or {}
+        self._lines = lines
+
+    def json(self) -> dict:
+        return self.payload
+
+    async def aiter_lines(self):
+        for line in self._lines:
+            yield line
+
+
+class FakeStreamContext:
+    def __init__(self, response: FakeResponse) -> None:
+        self.response = response
+
+    async def __aenter__(self) -> FakeResponse:
+        return self.response
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+
+class FakeAsyncClient:
+    def __init__(self, response: FakeResponse) -> None:
+        self.response = response
+
+    async def __aenter__(self) -> FakeAsyncClient:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+    async def post(self, *args: object, **kwargs: object) -> FakeResponse:
+        return self.response
+
+    def stream(self, *args: object, **kwargs: object) -> FakeStreamContext:
+        return FakeStreamContext(self.response)
 
 
 def test_fake_model_supports_generation_structured_embeddings_and_streaming() -> None:
@@ -64,6 +120,21 @@ def test_reliable_model_timeout_becomes_structured_error() -> None:
         reliable = ReliableModel(SlowModel(), retry_policy=RetryPolicy(max_attempts=1))
         with pytest.raises(ModelTimeoutError):
             await reliable.generate(GenerationRequest("hello", timeout=0.001))
+
+    asyncio.run(run())
+
+
+def test_reliable_model_supports_structured_embedding_and_stream_operations() -> None:
+    async def run() -> None:
+        reliable = ReliableModel(FakeModel(), retry_policy=RetryPolicy(initial_delay=0))
+        structured = await reliable.generate_structured(
+            StructuredGenerationRequest("hello", schema={"type": "object"})
+        )
+        embedding = await reliable.embed(EmbeddingRequest(("hello",)))
+        chunks = [chunk async for chunk in reliable.stream(GenerationRequest("hello"))]
+        assert structured.data["response"] == "fake response"
+        assert len(embedding.vectors) == 1
+        assert chunks == ["fake", "response"]
 
     asyncio.run(run())
 
@@ -138,3 +209,128 @@ def test_openai_compatible_adapter_translates_tool_definition() -> None:
     )
     assert payload["model"] == "example-model"
     assert payload["tools"][0]["function"]["name"] == "search"
+
+
+def test_openai_compatible_adapter_generate_structured_and_embed(monkeypatch) -> None:
+    response = FakeResponse(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"answer": "ok"}',
+                        "tool_calls": [
+                            {
+                                "id": "call-1",
+                                "function": {
+                                    "name": "search",
+                                    "arguments": '{"query": "eis"}',
+                                },
+                            }
+                        ],
+                    }
+                }
+            ],
+            "usage": {"prompt_tokens": 4, "completion_tokens": 3},
+        }
+    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *args, **kwargs: FakeAsyncClient(response))
+    adapter = OpenAICompatibleModel(
+        provider="openrouter",
+        base_url="https://example.test/v1",
+        api_key="secret",
+        model="example-model",
+    )
+
+    async def run() -> None:
+        generated = await adapter.generate(GenerationRequest("hello"))
+        structured = await adapter.generate_structured(
+            StructuredGenerationRequest("hello", schema={"type": "object"})
+        )
+        embedded_response = FakeResponse(
+            {"data": [{"embedding": [1, 2.5]}], "usage": {"prompt_tokens": 2}}
+        )
+        monkeypatch.setattr(
+            httpx, "AsyncClient", lambda *args, **kwargs: FakeAsyncClient(embedded_response)
+        )
+        embedded = await adapter.embed(EmbeddingRequest(("hello",)))
+        assert generated.text == '{"answer": "ok"}'
+        assert generated.tool_calls[0].arguments["query"] == "eis"
+        assert generated.usage.total_tokens == 7
+        assert structured.data["answer"] == "ok"
+        assert embedded.vectors == ((1.0, 2.5),)
+
+    asyncio.run(run())
+
+
+def test_openai_compatible_adapter_streams_sse(monkeypatch) -> None:
+    response = FakeResponse(
+        {},
+        lines=(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
+            "data: {\"choices\":[{\"delta\":{\"content\":\" world\"}}]}",
+            "data: [DONE]",
+        ),
+    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *args, **kwargs: FakeAsyncClient(response))
+    adapter = OpenAICompatibleModel(
+        provider="openrouter",
+        base_url="https://example.test/v1",
+        api_key="secret",
+        model="example-model",
+    )
+
+    async def run() -> None:
+        chunks = [chunk async for chunk in adapter.stream(GenerationRequest("hello"))]
+        assert chunks == ["Hello", " world"]
+
+    asyncio.run(run())
+
+
+def test_openai_compatible_adapter_validates_provider_responses() -> None:
+    adapter = OpenAICompatibleModel(
+        provider="openrouter",
+        base_url="https://example.test/v1",
+        api_key="secret",
+        model="example-model",
+    )
+
+    async def run() -> None:
+        with pytest.raises(ModelRateLimitError):
+            await adapter._raise_for_status(
+                httpx.Response(429, headers={"retry-after": "2"})
+            )
+        with pytest.raises(ModelUnavailableError):
+            await adapter._raise_for_status(httpx.Response(503))
+        with pytest.raises(ModelValidationError):
+            await adapter._raise_for_status(httpx.Response(400))
+
+    asyncio.run(run())
+
+
+def test_openai_compatible_adapter_rejects_invalid_structured_output(monkeypatch) -> None:
+    response = FakeResponse({"choices": [{"message": {"content": "not-json"}}]})
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *args, **kwargs: FakeAsyncClient(response))
+    adapter = OpenAICompatibleModel(
+        provider="openrouter",
+        base_url="https://example.test/v1",
+        api_key="secret",
+        model="example-model",
+    )
+
+    async def run() -> None:
+        with pytest.raises(ModelValidationError):
+            await adapter.generate_structured(
+                StructuredGenerationRequest("hello", schema={"type": "object"})
+            )
+
+    asyncio.run(run())
+
+
+def test_openai_compatible_adapter_requires_configuration() -> None:
+    with pytest.raises(ModelConfigurationError):
+        OpenAICompatibleModel(
+            provider="openrouter",
+            base_url="",
+            api_key="secret",
+            model="example-model",
+        )
