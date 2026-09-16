@@ -119,6 +119,30 @@ class SecureExecutor:
         )
 
 
+class AgentToolAdapter:
+    """Bridge Phase 7's ``invoke(step)`` API to the secure Phase 8 executor."""
+
+    def __init__(self, tool_name: str, executor: SecureExecutor) -> None:
+        self.tool_name = tool_name
+        self._executor = executor
+        self.definition = executor._definition(tool_name)
+        self.name = tool_name
+
+    async def invoke(self, step: Any) -> ToolResult:
+        from eis.agents.models import AgentStep
+
+        if not isinstance(step, AgentStep):
+            raise TypeError("agent tool adapter requires AgentStep")
+        permissions = frozenset(self.definition.permissions)
+        return await self._executor.execute(
+            ToolRequest(
+                self.tool_name,
+                {"step": step.input, "resource": step.resource},
+                permissions,
+            )
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class LocalSubprocessBackend:
     """Subprocess backend; only receives validated argv and never invokes a shell."""
