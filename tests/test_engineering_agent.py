@@ -15,7 +15,10 @@ from eis.tools.models import ExecutionStatus, ToolRequest, ToolResult
 
 class FixtureRetriever:
     async def retrieve(self, request):
-        return ContextResult(Query(request.query, request.query.lower(), tuple(request.query.split())), ())
+        return ContextResult(
+            Query(request.query, request.query.lower(), tuple(request.query.split())),
+            (),
+        )
 
 
 class FixtureInspector:
@@ -125,7 +128,11 @@ def test_file_change_limit_escalates(tmp_path):
 
 
 def test_failed_targeted_tests_are_analyzed_and_corrected(tmp_path):
-    agent, tools = make_agent(tmp_path, fail_targeted=True, limits=EngineeringLimits(max_iterations=1))
+    agent, tools = make_agent(
+        tmp_path,
+        fail_targeted=True,
+        limits=EngineeringLimits(max_iterations=2),
+    )
 
     report = asyncio.run(agent.run(EngineeringTask("feature", str(tmp_path))))
 
