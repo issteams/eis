@@ -5,8 +5,11 @@ import pytest
 from eis.integrity import (
     Claim,
     Confidence,
+    DefaultContradictionDetector,
     DefaultIntegrityEngine,
+    DefaultProvenanceTracker,
     EvidenceItem,
+    InMemoryEvidenceTracker,
     IntegrityKind,
     SimpleConfidenceCalibrator,
     Uncertainty,
@@ -209,3 +212,32 @@ def test_uncertainty_can_define_resolution_path() -> None:
         "compare the source revisions",
     )
     assert uncertainty.resolution == "compare the source revisions"
+
+
+def test_evidence_tracker_preserves_attribution() -> None:
+    tracker = InMemoryEvidenceTracker()
+    evidence = make_evidence("runtime evidence")
+    tracker.track(evidence)
+    assert tuple(tracker.sources()) == (evidence,)
+
+
+def test_contradiction_detector_does_not_ignore_conflict() -> None:
+    detector = DefaultContradictionDetector()
+    first = make_evidence("3.12", source="a.md", polarity=True)
+    second = make_evidence("3.11", source="b.md", polarity=False)
+    assert detector.find_contradictions([first, second]) == ((first, second),)
+
+
+def test_contradiction_detector_ignores_stale_evidence() -> None:
+    detector = DefaultContradictionDetector()
+    expired = datetime.now(UTC) - timedelta(seconds=1)
+    first = make_evidence("old yes", source="a.md", polarity=True, expires_at=expired)
+    second = make_evidence("new no", source="b.md", polarity=False)
+    assert detector.find_contradictions([first, second]) == ()
+
+
+def test_provenance_tracker_preserves_source_history() -> None:
+    tracker = DefaultProvenanceTracker()
+    evidence = make_evidence("source evidence", source="decision.md")
+    tracker.record(evidence)
+    assert tracker.sources()[0].provenance.source.locator == "decision.md"
