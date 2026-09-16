@@ -31,9 +31,7 @@ class SecurityPolicy:
             ExecutionPolicy.PROHIBITED: False,
         }[definition.execution_policy]
         if not allowed:
-            raise ToolSecurityError(
-                f"execution policy denied: {definition.execution_policy.value}"
-            )
+            raise ToolSecurityError(f"execution policy denied: {definition.execution_policy.value}")
 
 
 @dataclass(frozen=True, slots=True)
