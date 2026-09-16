@@ -1,4 +1,5 @@
 """Structured logging setup shared by all EIS domains."""
+
 import logging
 import sys
 
