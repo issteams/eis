@@ -15,6 +15,52 @@ from eis.integrity.models import (
 )
 
 
+class InMemoryEvidenceTracker:
+    """Deterministic evidence registry for tests and local integrity workflows."""
+
+    def __init__(self) -> None:
+        self._evidence: list[EvidenceItem] = []
+
+    def track(self, evidence: EvidenceItem) -> None:
+        self._evidence.append(evidence)
+
+    def sources(self) -> Sequence[EvidenceItem]:
+        return tuple(self._evidence)
+
+
+class DefaultContradictionDetector:
+    def find_contradictions(
+        self,
+        evidence: Sequence[EvidenceItem],
+    ) -> tuple[tuple[EvidenceItem, EvidenceItem], ...]:
+        pairs: list[tuple[EvidenceItem, EvidenceItem]] = []
+        for index, first in enumerate(evidence):
+            if first.claim_key is None or first.polarity is None or not first.is_fresh:
+                continue
+            for second in evidence[index + 1 :]:
+                if (
+                    second.claim_key == first.claim_key
+                    and second.polarity is not None
+                    and second.polarity is not first.polarity
+                    and second.is_fresh
+                ):
+                    pairs.append((first, second))
+        return tuple(pairs)
+
+
+class DefaultProvenanceTracker:
+    """In-memory provenance registry; persistence belongs to a later adapter."""
+
+    def __init__(self) -> None:
+        self._evidence: list[EvidenceItem] = []
+
+    def record(self, evidence: EvidenceItem) -> None:
+        self._evidence.append(evidence)
+
+    def sources(self) -> Sequence[EvidenceItem]:
+        return tuple(self._evidence)
+
+
 class DefaultIntegrityEngine:
     """Deterministic integrity checks; no model provider is required."""
 
@@ -213,7 +259,10 @@ class SimpleConfidenceCalibrator:
 
 
 __all__ = [
+    "DefaultContradictionDetector",
     "DefaultFreshnessChecker",
     "DefaultIntegrityEngine",
+    "DefaultProvenanceTracker",
+    "InMemoryEvidenceTracker",
     "SimpleConfidenceCalibrator",
 ]
