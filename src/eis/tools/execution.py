@@ -19,7 +19,7 @@ from eis.tools.models import (
     ToolResult,
 )
 from eis.tools.policies import ExecutionLimits, SecurityPolicy, ToolSecurityError
-from eis.tools.protocols import AuditSink, ExecutionBackend, PolicyAuthorizer
+from eis.tools.protocols import AuditSink, PolicyAuthorizer
 
 
 class ToolExecutionError(RuntimeError):
@@ -35,7 +35,7 @@ class InMemoryAuditSink:
 
 
 class SecureExecutor:
-    """Executes registered tools only after policy, permission, and limit checks."""
+    """Execute registered tools only after permission, policy, and limit checks."""
 
     def __init__(
         self,
@@ -58,19 +58,21 @@ class SecureExecutor:
         result = ToolResult(ExecutionStatus.FAILED, request_id=request.request_id)
         try:
             self._limits.validate(definition, request)
+            missing = set(definition.permissions) - set(request.granted_permissions)
+            if missing:
+                raise ToolSecurityError(f"missing permissions: {', '.join(sorted(missing))}")
             self._policy.authorize(request, definition)
-            tool = self._tools[request.tool]
             result = await asyncio.wait_for(
-                tool.execute(request), timeout=definition.timeout_seconds
+                self._tools[request.tool].execute(request),
+                timeout=definition.timeout_seconds,
             )
+            result = self._cap_output(result)
             status = result.status
             return result
         except TimeoutError:
             status = ExecutionStatus.TIMEOUT
             error = f"tool timed out after {definition.timeout_seconds:.3f}s"
-            return ToolResult(
-                status, error=error, request_id=request.request_id
-            )
+            return ToolResult(status, error=error, request_id=request.request_id)
         except (ToolSecurityError, PermissionError) as exc:
             status = ExecutionStatus.DENIED
             error = str(exc)
@@ -101,10 +103,25 @@ class SecureExecutor:
             raise ToolExecutionError(f"tool is not registered: {name}")
         return tool.definition
 
+    def _cap_output(self, result: ToolResult) -> ToolResult:
+        limit = self._limits.max_output_bytes
+        stdout = result.stdout.encode()[:limit].decode(errors="replace")
+        stderr = result.stderr.encode()[:limit].decode(errors="replace")
+        return ToolResult(
+            result.status,
+            output=result.output,
+            error=result.error,
+            exit_code=result.exit_code,
+            stdout=stdout,
+            stderr=stderr,
+            duration_seconds=result.duration_seconds,
+            request_id=result.request_id,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class LocalSubprocessBackend:
-    """Small subprocess backend; callers must pass an already validated argv list."""
+    """Subprocess backend; only receives validated argv and never invokes a shell."""
 
     async def run(
         self,
@@ -119,12 +136,12 @@ class LocalSubprocessBackend:
         if not all(isinstance(part, str) and part for part in argv):
             return ToolResult(ExecutionStatus.FAILED, error="argv contains invalid values")
         started = time.monotonic()
+        process = await asyncio.create_subprocess_exec(
+            *argv,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
         try:
-            process = await asyncio.create_subprocess_exec(
-                *argv,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout_seconds)
             return ToolResult(
                 ExecutionStatus.SUCCESS if process.returncode == 0 else ExecutionStatus.FAILED,
