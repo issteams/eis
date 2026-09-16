@@ -9,6 +9,7 @@ from eis.config.settings import Settings
 from eis.models import (
     EmbeddingRequest,
     GenerationRequest,
+    GenerationResponse,
     ModelConfigurationError,
     RetryPolicy,
     StructuredGenerationRequest,
@@ -55,7 +56,7 @@ def test_reliable_model_retries_transient_failures_and_tracks_usage() -> None:
 
 def test_reliable_model_timeout_becomes_structured_error() -> None:
     class SlowModel(FakeModel):
-        async def generate(self, request: GenerationRequest) -> object:
+        async def generate(self, request: GenerationRequest) -> GenerationResponse:
             await asyncio.sleep(0.02)
             return await super().generate(request)
 
