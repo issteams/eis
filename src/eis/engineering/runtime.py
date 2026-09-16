@@ -84,7 +84,12 @@ class EngineeringAgent:
             self._guard()
             records.append(ChangeRecord(EngineeringPhase.UNDERSTAND, detail=task.objective))
             context = await self._retrieve(task)
-            records.append(ChangeRecord(EngineeringPhase.RETRIEVE, detail="project knowledge retrieved"))
+            records.append(
+                ChangeRecord(
+                    EngineeringPhase.RETRIEVE,
+                    detail="project knowledge retrieved",
+                )
+            )
             snapshot = await self._inspect(task)
             records.append(
                 ChangeRecord(
@@ -92,7 +97,12 @@ class EngineeringAgent:
                     detail=f"inspected {len(snapshot.files)} repository files",
                 )
             )
-            records.append(ChangeRecord(EngineeringPhase.ARCHITECTURE, detail="architecture inspection complete"))
+            records.append(
+                ChangeRecord(
+                    EngineeringPhase.ARCHITECTURE,
+                    detail="architecture inspection complete",
+                )
+            )
             records.append(
                 ChangeRecord(
                     EngineeringPhase.AFFECTED_COMPONENTS,
@@ -106,7 +116,10 @@ class EngineeringAgent:
                 )
             )
             records.append(
-                ChangeRecord(EngineeringPhase.DUPLICATION, detail="duplication candidates supplied to planner")
+                ChangeRecord(
+                    EngineeringPhase.DUPLICATION,
+                    detail="duplication candidates supplied to planner",
+                )
             )
 
             self._guard()
@@ -116,17 +129,25 @@ class EngineeringAgent:
             valid, reason = await self._validator.validate(task, snapshot, plan)
             records.append(ChangeRecord(EngineeringPhase.VALIDATE_PLAN, detail=reason))
             if not valid:
-                raise EngineeringEscalation(f"implementation plan rejected: {reason}")
+                raise EngineeringEscalation(
+                    f"implementation plan rejected: {reason}"
+                )
 
             while iterations < self._limits.max_iterations:
                 iterations += 1
                 self._guard()
                 implementation = await self._call_tool(
                     "engineering.implement",
-                    {"task": task.objective, "repository": task.repository, "plan": plan},
+                    {
+                        "task": task.objective,
+                        "repository": task.repository,
+                        "plan": plan,
+                    },
                 )
                 changes = self._record_changes(implementation)
-                records.append(ChangeRecord(EngineeringPhase.IMPLEMENT, changes=changes))
+                records.append(
+                    ChangeRecord(EngineeringPhase.IMPLEMENT, changes=changes)
+                )
                 self._enforce_file_limit()
 
                 targeted = await self._call_tool(
@@ -137,17 +158,35 @@ class EngineeringAgent:
                 if targeted.status is not ExecutionStatus.SUCCESS:
                     failure = await self._failure(targeted)
                     failures.append(failure)
-                    records.append(ChangeRecord(EngineeringPhase.ANALYZE_FAILURES, detail=failure))
+                    records.append(
+                        ChangeRecord(
+                            EngineeringPhase.ANALYZE_FAILURES,
+                            detail=failure,
+                        )
+                    )
                     if iterations >= self._limits.max_iterations:
-                        raise EngineeringEscalation("maximum engineering iterations reached")
+                        raise EngineeringEscalation(
+                            "maximum engineering iterations reached"
+                        )
                     await self._call_tool(
                         "engineering.correct",
-                        {"repository": task.repository, "failure": failure, "plan": plan},
+                        {
+                            "repository": task.repository,
+                            "failure": failure,
+                            "plan": plan,
+                        },
                     )
-                    records.append(ChangeRecord(EngineeringPhase.CORRECT, detail=failure))
+                    records.append(
+                        ChangeRecord(
+                            EngineeringPhase.CORRECT,
+                            detail=failure,
+                        )
+                    )
                     continue
 
-                records.append(ChangeRecord(EngineeringPhase.TARGETED_TESTS, detail="passed"))
+                records.append(
+                    ChangeRecord(EngineeringPhase.TARGETED_TESTS, detail="passed")
+                )
                 broader = await self._call_tool(
                     "engineering.test.broader",
                     {"repository": task.repository, "plan": plan},
@@ -156,18 +195,41 @@ class EngineeringAgent:
                 if broader.status is not ExecutionStatus.SUCCESS:
                     failure = await self._failure(broader)
                     failures.append(failure)
-                    records.append(ChangeRecord(EngineeringPhase.ANALYZE_FAILURES, detail=failure))
+                    records.append(
+                        ChangeRecord(
+                            EngineeringPhase.ANALYZE_FAILURES,
+                            detail=failure,
+                        )
+                    )
                     if iterations >= self._limits.max_iterations:
-                        raise EngineeringEscalation("maximum engineering iterations reached")
+                        raise EngineeringEscalation(
+                            "maximum engineering iterations reached"
+                        )
                     await self._call_tool(
                         "engineering.correct",
-                        {"repository": task.repository, "failure": failure, "plan": plan},
+                        {
+                            "repository": task.repository,
+                            "failure": failure,
+                            "plan": plan,
+                        },
                     )
-                    records.append(ChangeRecord(EngineeringPhase.CORRECT, detail=failure))
+                    records.append(
+                        ChangeRecord(
+                            EngineeringPhase.CORRECT,
+                            detail=failure,
+                        )
+                    )
                     continue
 
-                records.append(ChangeRecord(EngineeringPhase.BROADER_TESTS, detail="passed"))
-                records.append(ChangeRecord(EngineeringPhase.REPORT, detail="implementation verified"))
+                records.append(
+                    ChangeRecord(EngineeringPhase.BROADER_TESTS, detail="passed")
+                )
+                records.append(
+                    ChangeRecord(
+                        EngineeringPhase.REPORT,
+                        detail="implementation verified",
+                    )
+                )
                 return EngineeringReport(
                     task,
                     "completed",
@@ -226,7 +288,9 @@ class EngineeringAgent:
                 change = item
             elif isinstance(item, dict) and isinstance(item.get("path"), str):
                 change = FileChange(
-                    item["path"], str(item.get("operation", "modify")), str(item.get("summary", ""))
+                    item["path"],
+                    str(item.get("operation", "modify")),
+                    str(item.get("summary", "")),
                 )
             else:
                 continue
