@@ -204,7 +204,13 @@ class OpenAICompatibleModel:
                     headers=self._headers(),
                 )
                 await self._raise_for_status(response)
-                return response.json()
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise ModelValidationError(
+                        "provider returned an invalid response body",
+                        provider=self.provider,
+                    )
+                return data
         except httpx.TimeoutException as exc:
             raise ModelUnavailableError(
                 "provider request timed out", provider=self.provider
@@ -235,6 +241,6 @@ class OpenAICompatibleModel:
     def _usage(value: Any) -> Usage:
         if not isinstance(value, dict):
             return Usage()
-        input_tokens = int(value.get("prompt_tokens", value.get("input_tokens", 0)))
-        output_tokens = int(value.get("completion_tokens", value.get("output_tokens", 0)))
+        input_tokens = int(value.get("prompt_tokens") or value.get("input_tokens") or 0)
+        output_tokens = int(value.get("completion_tokens") or value.get("output_tokens") or 0)
         return Usage(input_tokens, output_tokens, input_tokens + output_tokens)
