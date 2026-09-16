@@ -10,7 +10,12 @@ from eis.context.retrieval import ContextScorer, QueryNormalizer, deduplicate
 class ContextBuilder:
     """Build ranked structured context without flattening evidence into a text blob."""
 
-    def __init__(self, retrievers: tuple[Retriever, ...], *, normalizer: QueryNormalizer | None = None) -> None:
+    def __init__(
+        self,
+        retrievers: tuple[Retriever, ...],
+        *,
+        normalizer: QueryNormalizer | None = None,
+    ) -> None:
         if not retrievers:
             raise ValueError("at least one retriever is required")
         self._retrievers = retrievers
@@ -28,7 +33,10 @@ class ContextBuilder:
             item
             for item in deduplicate(retrieved)
             if item.score >= request.min_score
-            and (not request.source_kinds or item.provenance.source_kind in request.source_kinds)
+            and (
+                not request.source_kinds
+                or item.provenance.source_kind in request.source_kinds
+            )
         ]
         ranked = self._scorer.rank(filtered)
         selected: list[ContextItem] = []
