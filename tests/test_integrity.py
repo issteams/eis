@@ -42,12 +42,19 @@ def make_claim(
     kind: IntegrityKind = IntegrityKind.FACT,
     claim_key: str = "python-version",
     polarity: bool = True,
+    metadata: dict[str, object] | None = None,
 ) -> Claim:
+    claim_metadata: dict[str, object] = {
+        "claim_key": claim_key,
+        "polarity": polarity,
+    }
+    if metadata:
+        claim_metadata.update(metadata)
     return Claim(
         statement=statement,
         kind=kind,
         confidence=Confidence(0.7, "initial assessment"),
-        metadata={"claim_key": claim_key, "polarity": polarity},
+        metadata=claim_metadata,
     )
 
 
@@ -156,12 +163,10 @@ def test_invalidators_are_preserved_for_future_reassessment() -> None:
 def test_idea_evaluation_exposes_unknowns_risks_and_dependencies() -> None:
     engine = DefaultIntegrityEngine()
     supported = engine.validate_claim(make_claim(), [make_evidence("runtime evidence")])
-    risky_claim = make_claim("The proposed integration introduces a security risk", claim_key="security")
-    risky_claim = Claim(
-        statement=risky_claim.statement,
-        kind=IntegrityKind.INFERENCE,
-        confidence=risky_claim.confidence,
-        metadata={"claim_key": "security", "polarity": True, "risk": True},
+    risky_claim = make_claim(
+        "The proposed integration introduces a security risk",
+        claim_key="security",
+        metadata={"risk": True, "technical_risk": True, "dependency": "security review"},
     )
     risky = engine.validate_claim(
         risky_claim,
@@ -172,8 +177,9 @@ def test_idea_evaluation_exposes_unknowns_risks_and_dependencies() -> None:
         "Reduce manual deployment work",
         [supported, risky],
     )
-    assert evaluation.status is ValidationStatus.SUPPORTED
+    assert evaluation.status is ValidationStatus.TECHNICALLY_RISKY
     assert evaluation.risks == (risky.claim.statement,)
+    assert evaluation.dependencies == ("security review",)
 
 
 def test_idea_with_missing_evidence_needs_investigation() -> None:
