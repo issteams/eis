@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from time import monotonic
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from eis.models.errors import ModelError, ModelTimeoutError
 from eis.models.interfaces import (
@@ -16,6 +16,7 @@ from eis.models.interfaces import (
     GenerationRequest,
     GenerationResponse,
     Model,
+    ModelMetadata,
     StructuredGenerationRequest,
     StructuredGenerationResponse,
 )
@@ -41,7 +42,9 @@ class UsageLedger:
     output_tokens: int = 0
     estimated_cost: float = 0.0
 
-    def record(self, response: GenerationResponse | StructuredGenerationResponse | EmbeddingResponse) -> UsageLedger:
+    def record(
+        self, response: GenerationResponse | StructuredGenerationResponse | EmbeddingResponse
+    ) -> UsageLedger:
         usage = response.usage
         return UsageLedger(
             requests=self.requests + 1,
@@ -61,7 +64,7 @@ class ReliableModel:
         self._usage = UsageLedger()
 
     @property
-    def metadata(self):
+    def metadata(self) -> ModelMetadata:
         return self._model.metadata
 
     @property
@@ -80,7 +83,9 @@ class ReliableModel:
     async def generate_structured(
         self, request: StructuredGenerationRequest
     ) -> StructuredGenerationResponse:
-        response = await self._call("generate_structured", request, self._model.generate_structured)
+        response = await self._call(
+            "generate_structured", request, self._model.generate_structured
+        )
         self._usage = self._usage.record(response)
         return response
 
@@ -101,7 +106,14 @@ class ReliableModel:
                 async for chunk in self._stream_with_timeout(iterator, timeout):
                     yield chunk
                 self._traces.append(
-                    ModelTrace(trace_id, self.metadata.provider, self.metadata.model, "stream", (monotonic() - started) * 1000, attempts)
+                    ModelTrace(
+                        trace_id,
+                        self.metadata.provider,
+                        self.metadata.model,
+                        "stream",
+                        (monotonic() - started) * 1000,
+                        attempts,
+                    )
                 )
                 return
             except ModelError as exc:
@@ -109,7 +121,12 @@ class ReliableModel:
                     raise
                 await asyncio.sleep(self._policy.delay(attempts))
 
-    async def _call(self, operation: str, request: object, function: Callable[[object], Awaitable[T]]) -> T:
+    async def _call(
+        self,
+        operation: str,
+        request: Any,
+        function: Callable[[Any], Awaitable[T]],
+    ) -> T:
         trace_id = getattr(request, "trace_id", None) or uuid.uuid4().hex
         timeout = getattr(request, "timeout", None)
         started = monotonic()
@@ -119,7 +136,14 @@ class ReliableModel:
             try:
                 result = await asyncio.wait_for(function(request), timeout=timeout)
                 self._traces.append(
-                    ModelTrace(trace_id, self.metadata.provider, self.metadata.model, operation, (monotonic() - started) * 1000, attempts)
+                    ModelTrace(
+                        trace_id,
+                        self.metadata.provider,
+                        self.metadata.model,
+                        operation,
+                        (monotonic() - started) * 1000,
+                        attempts,
+                    )
                 )
                 return result
             except asyncio.TimeoutError as exc:
@@ -134,7 +158,7 @@ class ReliableModel:
                 await asyncio.sleep(self._policy.delay(attempts))
 
     @staticmethod
-    async def _stream_with_timeout(iterator, timeout: float | None):
+    async def _stream_with_timeout(iterator: Any, timeout: float | None):
         if timeout is None:
             async for chunk in iterator:
                 yield chunk
