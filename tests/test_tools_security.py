@@ -55,11 +55,7 @@ def test_path_traversal_is_rejected(tmp_path: Path):
 def test_secure_executor_denies_missing_permission(tmp_path: Path):
     audit = InMemoryAuditSink()
     executor = SecureExecutor({"filesystem": FilesystemTool(tmp_path)}, audit=audit)
-    result = run(
-        executor.execute(
-            ToolRequest("filesystem", {"operation": "read", "path": "x"})
-        )
-    )
+    result = run(executor.execute(ToolRequest("filesystem", {"operation": "read", "path": "x"})))
     assert result.status is ExecutionStatus.DENIED
     assert len(audit.events) == 1
     assert audit.events[0].status is ExecutionStatus.DENIED
