@@ -33,10 +33,7 @@ class ContextBuilder:
             item
             for item in deduplicate(retrieved)
             if item.score >= request.min_score
-            and (
-                not request.source_kinds
-                or item.provenance.source_kind in request.source_kinds
-            )
+            and (not request.source_kinds or item.provenance.source_kind in request.source_kinds)
         ]
         ranked = self._scorer.rank(filtered)
         selected: list[ContextItem] = []
