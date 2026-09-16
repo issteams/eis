@@ -41,16 +41,30 @@ class Observer:
 
 def test_agent_lifecycle_and_tool_execution():
     step = AgentStep("echo", "echo", "test", "ok")
-    agent = Agent.create("test-agent", "tester", permissions=(AgentPermission("echo", "test"),))
+    agent = Agent.create(
+        "test-agent",
+        "tester",
+        permissions=(AgentPermission("echo", "test"),),
+    )
     observer = Observer()
-    runtime = AgentRuntime(Planner(AgentPlan((step,))), {"echo": Tool()}, observer=observer)
+    runtime = AgentRuntime(
+        Planner(AgentPlan((step,))),
+        {"echo": Tool()},
+        observer=observer,
+    )
 
     result = asyncio.run(runtime.run(agent, AgentTask("echo")))
 
     assert result.state is AgentState.COMPLETE
     assert result.output == "ok"
     assert observer.events == [
-        "receive", "understand", "plan", "execute", "observe", "verify", "complete"
+        "receive",
+        "understand",
+        "plan",
+        "execute",
+        "observe",
+        "verify",
+        "complete",
     ]
 
 
@@ -68,8 +82,16 @@ def test_permission_boundary_escalates_without_permission():
 
 def test_policy_boundary_escalates():
     step = AgentStep("echo", "echo", "test", "blocked")
-    agent = Agent.create("test-agent", "tester", permissions=(AgentPermission("echo", "test"),))
-    runtime = AgentRuntime(Planner(AgentPlan((step,))), {"echo": Tool()}, policies=(DenyPolicy(),))
+    agent = Agent.create(
+        "test-agent",
+        "tester",
+        permissions=(AgentPermission("echo", "test"),),
+    )
+    runtime = AgentRuntime(
+        Planner(AgentPlan((step,))),
+        {"echo": Tool()},
+        policies=(DenyPolicy(),),
+    )
 
     result = asyncio.run(runtime.run(agent, AgentTask("echo")))
 
