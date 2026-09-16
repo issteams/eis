@@ -1,5 +1,6 @@
 """Domain-neutral EIS exception hierarchy."""
 
+
 class EISError(Exception):
     """Base exception for expected EIS failures."""
 
