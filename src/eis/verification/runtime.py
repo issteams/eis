@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from eis.verification.models import (
     CorrectionRecord,
@@ -65,7 +65,7 @@ class VerificationEngine:
     correction: CorrectionRunner
     root_cause: RootCauseAnalyzer | None = None
     regression: RegressionGuard | None = None
-    limits: VerificationLimits = VerificationLimits()
+    limits: VerificationLimits = field(default_factory=VerificationLimits)
 
     async def verify(self, request: VerificationRequest) -> VerificationReport:
         stages: list[StageResult] = []
@@ -80,7 +80,7 @@ class VerificationEngine:
                 return self._escalate(
                     stages,
                     corrections,
-                    failures + [baseline.detail],
+                    [*failures, baseline.detail],
                     "baseline regression verification failed",
                     attempts,
                 )
