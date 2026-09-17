@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Awaitable, Callable, TypeVar, cast
+from typing import TypeVar, cast
 
 from eis.security.models import ActionRequest, Approval, Principal, RiskLevel
 from eis.security.runtime import SecurityGateway
