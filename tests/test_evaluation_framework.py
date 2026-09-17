@@ -6,6 +6,7 @@ from eis.evaluation import (
     EvaluationFramework,
     EvaluationResponse,
     EvaluationSeverity,
+    EvaluationThresholds,
     builtin_cases,
 )
 
@@ -114,4 +115,4 @@ def test_quality_gate_rejects_honesty_failure() -> None:
         security_violation=True,
     )
     report = EvaluationFramework()._report([response], [case])
-    assert report.passes(__import__("eis.evaluation", fromlist=["EvaluationThresholds"]).EvaluationThresholds()) is False
+    assert report.passes(EvaluationThresholds()) is False
