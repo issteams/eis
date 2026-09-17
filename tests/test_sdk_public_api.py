@@ -62,7 +62,9 @@ def test_engineering_adapter_and_audit() -> None:
         result = await eis.execute_engineering(
             task,
             lambda _: type(
-                "Engineering", (), {"status": "completed", "summary": "implemented"}
+                "Engineering",
+                (),
+                {"status": "completed", "summary": "implemented"},
             )(),
         )
 
