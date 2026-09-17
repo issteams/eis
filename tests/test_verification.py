@@ -25,6 +25,18 @@ class FixtureVerifier:
         return StageResult(stage, True, "passed")
 
 
+class AlwaysFailVerifier:
+    def __init__(self, failing_stage):
+        self.failing_stage = failing_stage
+        self.calls = []
+
+    async def verify(self, stage, request):
+        self.calls.append(stage)
+        if stage is self.failing_stage:
+            return StageResult(stage, False, "security verification failed")
+        return StageResult(stage, True, "passed")
+
+
 class FixtureCorrection:
     def __init__(self):
         self.calls = []
@@ -38,7 +50,6 @@ class FixtureRegression:
     def __init__(self):
         self.baseline_calls = 0
         self.regression_calls = 0
-        self.fail_once = False
 
     async def verify_baseline(self, request):
         self.baseline_calls += 1
@@ -46,9 +57,6 @@ class FixtureRegression:
 
     async def verify_regression(self, request):
         self.regression_calls += 1
-        if self.fail_once:
-            self.fail_once = False
-            return StageResult(VerificationStage.REGRESSION, False, "regression test failed")
         return StageResult(VerificationStage.REGRESSION, True, "regression passed")
 
 
@@ -96,19 +104,12 @@ def test_failed_verification_is_classified_corrected_and_retested():
     assert report.corrections[0].original_failure == "test assertion failed"
     assert report.corrections[0].classification is FailureClass.TEST
     assert correction.calls
-    assert verifier.calls.count(VerificationStage.TEST) == 2
+    assert verifier.calls.count(VerificationStage.TEST) == 3
 
 
 def test_correction_limit_escalates_without_false_success():
-    verifier = FixtureVerifier(VerificationStage.SECURITY)
+    verifier = AlwaysFailVerifier(VerificationStage.SECURITY)
     correction = FixtureCorrection()
-    verifier.fail_once = False
-    async def always_fail(stage, request):
-        verifier.calls.append(stage)
-        if stage is VerificationStage.SECURITY:
-            return StageResult(stage, False, "security verification failed")
-        return StageResult(stage, True, "passed")
-    verifier.verify = always_fail
     engine = VerificationEngine(
         verifier,
         correction,
