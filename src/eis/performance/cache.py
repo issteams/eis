@@ -90,7 +90,7 @@ class AsyncResponseCache(Generic[T]):
         async with self._lock:
             future = self._inflight.get(key)
             if future is None:
-                future = asyncio.get_running_loop().create_future()
+                future: asyncio.Future[T] = asyncio.get_running_loop().create_future()
                 self._inflight[key] = future
                 owner = True
             else:
