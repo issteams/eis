@@ -5,10 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Protocol
 
-from eis.redteam.models import (
-    AttackCase,
-    AttackObservation,
-)
+from eis.redteam.models import AttackCase, AttackObservation
 
 
 RedTeamTarget = Callable[[AttackCase], AttackObservation | Awaitable[AttackObservation]]
