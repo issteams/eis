@@ -19,15 +19,24 @@ class IntegrationSecurity:
     gateway: SecurityGateway
     principal: Principal
 
-    def check_read(self, resource: str, *, operation: str) -> None:
-        request = ActionRequest(
-            self.principal,
-            "read",
-            resource,
-            target=operation,
-        )
+    async def read(
+        self,
+        resource: str,
+        *,
+        operation: str,
+        action: Callable[[], T | Awaitable[T]],
+    ) -> T:
+        request = ActionRequest(self.principal, "read", resource, target=operation)
         self.gateway.prepare(request)
+        try:
+            result = action()
+            if inspect.isawaitable(result):
+                result = await result
+        except Exception as exc:
+            self.gateway.complete(request, result="failed", failure=str(exc))
+            raise
         self.gateway.complete(request)
+        return result
 
     async def write(
         self,
