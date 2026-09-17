@@ -28,9 +28,9 @@ class MetricsRegistry:
     """In-process counters, gauges and histograms with Prometheus text output."""
 
     def __init__(self) -> None:
-        self._counters: defaultdict[
-            tuple[str, tuple[tuple[str, str], ...]], float
-        ] = defaultdict(float)
+        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(
+            float
+        )
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         self._histograms: defaultdict[
             tuple[str, tuple[tuple[str, str], ...]], list[float]
@@ -58,7 +58,9 @@ class MetricsRegistry:
             samples.append(MetricSample(name, value, dict(labels), now))
         for (name, labels), values in self._histograms.items():
             if values:
-                samples.append(MetricSample(f"{name}_count", float(len(values)), dict(labels), now))
+                samples.append(
+                    MetricSample(f"{name}_count", float(len(values)), dict(labels), now)
+                )
                 samples.append(MetricSample(f"{name}_sum", sum(values), dict(labels), now))
         return samples
 
@@ -142,7 +144,7 @@ class Observability:
     @contextmanager
     def measure(self, operation: str, **labels: str) -> Iterator[TraceContext]:
         started = time.monotonic()
-        with self.tracer.span(operation, **labels) as context:
+        with self.tracer.span(operation, context=None, **labels) as context:
             try:
                 yield context
             except Exception:
@@ -159,14 +161,14 @@ class Observability:
     def record_model_usage(self, usage: ModelUsageMetric) -> None:
         labels = {"provider": usage.provider, "model": usage.model}
         self.metrics.increment("eis_model_requests_total", **labels)
-        self.metrics.increment("eis_model_input_tokens_total", usage.input_tokens, **labels)
-        self.metrics.increment("eis_model_output_tokens_total", usage.output_tokens, **labels)
-        self.metrics.increment("eis_model_tokens_total", usage.total_tokens, **labels)
+        self.metrics.increment("eis_model_input_tokens_total", value=usage.input_tokens, **labels)
+        self.metrics.increment("eis_model_output_tokens_total", value=usage.output_tokens, **labels)
+        self.metrics.increment("eis_model_tokens_total", value=usage.total_tokens, **labels)
         self.metrics.observe("eis_model_latency_seconds", usage.latency_seconds, **labels)
         if usage.estimated_cost is not None:
             self.metrics.increment(
                 "eis_model_cost_total",
-                usage.estimated_cost,
+                value=usage.estimated_cost,
                 currency=usage.currency or "UNKNOWN",
                 **labels,
             )
@@ -178,7 +180,9 @@ class Observability:
         self.metrics.observe(
             "eis_task_latency_seconds", metric.latency_seconds, task_type=metric.task_type
         )
-        self.metrics.increment("eis_task_retries_total", metric.retries, task_type=metric.task_type)
+        self.metrics.increment(
+            "eis_task_retries_total", value=metric.retries, task_type=metric.task_type
+        )
 
     def record_tool(self, tool: str, status: str, latency_seconds: float) -> None:
         self.metrics.increment("eis_tool_executions_total", tool=tool, status=status)
@@ -190,9 +194,7 @@ class Observability:
         self.metrics.increment("eis_verifications_total", stage=stage, status=status)
         self.metrics.observe("eis_verification_latency_seconds", latency_seconds, stage=stage)
         if status not in {"passed", "success"}:
-            self.metrics.increment(
-                "eis_verification_failures_total", stage=stage, status=status
-            )
+            self.metrics.increment("eis_verification_failures_total", stage=stage, status=status)
 
     def health_snapshot(self) -> dict[str, Any]:
         return {
