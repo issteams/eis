@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from typing import Awaitable, Callable, TypeVar
 
@@ -45,8 +46,8 @@ class IntegrationSecurity:
         )
         self.gateway.execute_approved(request, approval=approval)
         result = action()
-        if hasattr(result, "__await__"):
-            return await result  # type: ignore[misc]
+        if inspect.isawaitable(result):
+            return await result
         return result
 
 
