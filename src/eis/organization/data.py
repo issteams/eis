@@ -21,7 +21,10 @@ ECHOWAVS = OrganizationEntity(
     id="echowavs",
     kind=OrganizationEntityKind.ORGANIZATION,
     name="Echowavs",
-    description="Technology company providing innovative software solutions for business efficiency and growth.",
+    description=(
+        "Technology company providing innovative software solutions for business "
+        "efficiency and growth."
+    ),
 )
 
 CRAFTIQ = ProductProfile(
@@ -54,7 +57,10 @@ STITCHAI = ProductProfile(
 SMARKET = ProductProfile(
     id="smarket",
     identity="SMarket",
-    purpose="Fashion and accessories marketplace where sellers can publish products and buyers can discover them.",
+    purpose=(
+        "Fashion and accessories marketplace where sellers can publish products "
+        "and buyers can discover them."
+    ),
     current_status=UNKNOWN,
     architecture=UNKNOWN,
     technology_stack=(UNKNOWN,),
@@ -67,12 +73,21 @@ SMARKET = ProductProfile(
 EIS = ProductProfile(
     id="eis",
     identity="EIS",
-    purpose="Echowavs Intelligent System providing organizational, knowledge, agent, engineering, and verification intelligence.",
+    purpose=(
+        "Echowavs Intelligent System providing organizational, knowledge, agent, "
+        "engineering, and verification intelligence."
+    ),
     repositories=("issteams/eis",),
     current_status="development",
-    architecture="modular Python package with shared knowledge, context, agent, tool, engineering, verification, and specialized-agent layers.",
+    architecture=(
+        "modular Python package with shared knowledge, context, agent, tool, "
+        "engineering, verification, and specialized-agent layers."
+    ),
     technology_stack=("Python",),
-    engineering_standards=("production-oriented modular architecture", "verification before success reporting"),
+    engineering_standards=(
+        "production-oriented modular architecture",
+        "verification before success reporting",
+    ),
     dependencies=(),
     roadmap=("UNKNOWN",),
     constraints=("organizational facts must come from the data layer",),
@@ -141,8 +156,8 @@ __all__ = [
     "EIS",
     "INITIAL_STORE",
     "ORGANIZATION",
-    "REPOSITORIES",
     "RELATIONSHIPS",
+    "REPOSITORIES",
     "SMARKET",
     "STITCHAI",
     "UNKNOWN",
