@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Protocol
 
+from eis.core.protocols import Evaluator
 from eis.evaluation.models import EvaluationCase, EvaluationResponse
 
 
@@ -31,4 +32,10 @@ class EvaluationSuite(Protocol):
     def cases(self) -> Sequence[EvaluationCase]: ...
 
 
-__all__ = ["CaseJudge", "EvaluationRunner", "EvaluationRunnerProtocol", "EvaluationSuite"]
+__all__ = [
+    "CaseJudge",
+    "EvaluationRunner",
+    "EvaluationRunnerProtocol",
+    "EvaluationSuite",
+    "Evaluator",
+]
