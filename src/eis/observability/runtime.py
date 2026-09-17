@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 import uuid
@@ -29,9 +28,13 @@ class MetricsRegistry:
     """In-process counters, gauges and histograms with Prometheus text output."""
 
     def __init__(self) -> None:
-        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(float)
+        self._counters: defaultdict[
+            tuple[str, tuple[tuple[str, str], ...]], float
+        ] = defaultdict(float)
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
-        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = defaultdict(list)
+        self._histograms: defaultdict[
+            tuple[str, tuple[tuple[str, str], ...]], list[float]
+        ] = defaultdict(list)
 
     @staticmethod
     def _key(name: str, labels: dict[str, str]) -> tuple[str, tuple[tuple[str, str], ...]]:
@@ -64,10 +67,11 @@ class MetricsRegistry:
         for sample in self.snapshot():
             labels = ""
             if sample.labels:
-                labels = "{" + ",".join(
-                    f'{k}="{v.replace(chr(92), chr(92) + chr(92)).replace(chr(34), chr(92) + chr(34))}"'
-                    for k, v in sorted(sample.labels.items())
-                ) + "}"
+                rendered = []
+                for key, value in sorted(sample.labels.items()):
+                    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+                    rendered.append(f'{key}="{escaped}"')
+                labels = "{" + ",".join(rendered) + "}"
             lines.append(f"{sample.name}{labels} {sample.value}")
         return "\n".join(lines) + ("\n" if lines else "")
 
@@ -76,7 +80,11 @@ class StructuredLogger:
     """Structured JSON logging with safe context propagation."""
 
     def __init__(self, name: str = "eis", *, json_output: bool = True) -> None:
-        renderer = structlog.processors.JSONRenderer() if json_output else structlog.dev.ConsoleRenderer()
+        renderer = (
+            structlog.processors.JSONRenderer()
+            if json_output
+            else structlog.dev.ConsoleRenderer()
+        )
         structlog.configure(
             processors=[
                 structlog.contextvars.merge_contextvars,
@@ -101,7 +109,12 @@ class Tracer:
     spans: list[SpanRecord] = field(default_factory=list)
 
     @contextmanager
-    def span(self, name: str, context: TraceContext | None = None, **attributes: Any) -> Iterator[TraceContext]:
+    def span(
+        self,
+        name: str,
+        context: TraceContext | None = None,
+        **attributes: Any,
+    ) -> Iterator[TraceContext]:
         trace_id = context.trace_id if context else uuid.uuid4().hex
         span_id = uuid.uuid4().hex[:16]
         child = TraceContext(trace_id, span_id, context.span_id if context else None)
@@ -113,7 +126,9 @@ class Tracer:
             error = str(exc)
             raise
         finally:
-            self.spans.append(SpanRecord(trace_id, span_id, name, started, utc_now(), attributes, error))
+            self.spans.append(
+                SpanRecord(trace_id, span_id, name, started, utc_now(), attributes, error)
+            )
 
 
 class Observability:
@@ -149,13 +164,20 @@ class Observability:
         self.metrics.increment("eis_model_tokens_total", usage.total_tokens, **labels)
         self.metrics.observe("eis_model_latency_seconds", usage.latency_seconds, **labels)
         if usage.estimated_cost is not None:
-            self.metrics.increment("eis_model_cost_total", usage.estimated_cost, currency=usage.currency or "UNKNOWN", **labels)
+            self.metrics.increment(
+                "eis_model_cost_total",
+                usage.estimated_cost,
+                currency=usage.currency or "UNKNOWN",
+                **labels,
+            )
         if not usage.success:
             self.metrics.increment("eis_model_failures_total", **labels)
 
     def record_task(self, metric: TaskMetric) -> None:
         self.metrics.increment("eis_tasks_total", task_type=metric.task_type, status=metric.status)
-        self.metrics.observe("eis_task_latency_seconds", metric.latency_seconds, task_type=metric.task_type)
+        self.metrics.observe(
+            "eis_task_latency_seconds", metric.latency_seconds, task_type=metric.task_type
+        )
         self.metrics.increment("eis_task_retries_total", metric.retries, task_type=metric.task_type)
 
     def record_tool(self, tool: str, status: str, latency_seconds: float) -> None:
@@ -168,17 +190,31 @@ class Observability:
         self.metrics.increment("eis_verifications_total", stage=stage, status=status)
         self.metrics.observe("eis_verification_latency_seconds", latency_seconds, stage=stage)
         if status not in {"passed", "success"}:
-            self.metrics.increment("eis_verification_failures_total", stage=stage, status=status)
+            self.metrics.increment(
+                "eis_verification_failures_total", stage=stage, status=status
+            )
 
     def health_snapshot(self) -> dict[str, Any]:
-        return {"status": "ok", "metrics": len(self.metrics.snapshot()), "spans": len(self.tracer.spans)}
+        return {
+            "status": "ok",
+            "metrics": len(self.metrics.snapshot()),
+            "spans": len(self.tracer.spans),
+        }
 
     def dashboard(self) -> dict[str, Any]:
         return {
             "health": self.health_snapshot(),
-            "metrics": [sample.__dict__ if hasattr(sample, "__dict__") else {"name": sample.name, "value": sample.value, "labels": sample.labels} for sample in self.metrics.snapshot()],
+            "metrics": [
+                {"name": sample.name, "value": sample.value, "labels": sample.labels}
+                for sample in self.metrics.snapshot()
+            ],
             "recent_spans": [
-                {"trace_id": span.trace_id, "name": span.name, "latency_seconds": span.latency_seconds, "error": span.error}
+                {
+                    "trace_id": span.trace_id,
+                    "name": span.name,
+                    "latency_seconds": span.latency_seconds,
+                    "error": span.error,
+                }
                 for span in self.tracer.spans[-50:]
             ],
         }
