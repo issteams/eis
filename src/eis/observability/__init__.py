@@ -13,6 +13,7 @@ from eis.observability.models import (
 )
 from eis.observability.resilience import ConcurrencyLimiter, RetryPolicy, retry_async
 from eis.observability.runtime import MetricsRegistry, Observability, StructuredLogger, Tracer
+from eis.observability.worker import Worker
 
 __all__ = [
     "CheckResult",
@@ -33,5 +34,6 @@ __all__ = [
     "TaskMetric",
     "TraceContext",
     "Tracer",
+    "Worker",
     "retry_async",
 ]
