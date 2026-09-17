@@ -1,5 +1,7 @@
 """Environment-driven production configuration."""
 
+from __future__ import annotations
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,6 +32,15 @@ class ProductionSettings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "ProductionSettings":
+        self._validate_values()
+        return self
+
+    def validate(self) -> "ProductionSettings":  # type: ignore[override]
+        """Validate an already-created settings object for compatibility with the public API."""
+        self._validate_values()
+        return self
+
+    def _validate_values(self) -> None:
         if self.request_timeout_seconds <= 0 or self.model_timeout_seconds <= 0:
             raise ValueError("timeouts must be positive")
         if self.tool_timeout_seconds <= 0 or self.health_timeout_seconds <= 0:
@@ -40,7 +51,6 @@ class ProductionSettings(BaseSettings):
             raise ValueError("worker concurrency must be positive")
         if self.task_lease_seconds < 1 or self.task_recovery_interval_seconds < 1:
             raise ValueError("task timing values must be positive")
-        return self
 
 
 __all__ = ["ProductionSettings"]
