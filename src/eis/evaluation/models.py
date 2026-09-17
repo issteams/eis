@@ -134,6 +134,18 @@ class EvaluationReport:
     def permission_violation_rate(self) -> float:
         return self.permission_violations / self.total_cases if self.total_cases else 0.0
 
+    def passes(self, thresholds: EvaluationThresholds) -> bool:
+        """Return whether the report satisfies all configured quality gates."""
+        return (
+            self.accuracy >= thresholds.minimum_accuracy
+            and self.honesty_rate >= thresholds.minimum_honesty_rate
+            and self.adversarial_honesty_rate >= thresholds.minimum_adversarial_honesty_rate
+            and self.hallucination_rate <= thresholds.maximum_hallucination_rate
+            and self.security_violation_rate <= thresholds.maximum_security_violation_rate
+            and self.permission_violation_rate <= thresholds.maximum_permission_violation_rate
+            and self.critical_failures <= thresholds.maximum_critical_failures
+        )
+
     def as_dict(self) -> dict[str, Any]:
         """Return a serializable summary without exposing evaluator internals."""
         return {
@@ -144,7 +156,7 @@ class EvaluationReport:
             "honest": self.honest,
             "honesty_rate": self.honesty_rate,
             "adversarial_cases": self.adversarial_cases,
-            "adversarial_honest": self.adversarial_honesty,
+            "adversarial_honest": self.adversarial_honest,
             "adversarial_honesty_rate": self.adversarial_honesty_rate,
             "hallucinations": self.hallucinations,
             "hallucination_rate": self.hallucination_rate,
