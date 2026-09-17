@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from eis.security.models import AuthorizationStatus
 from eis.security.runtime import RedactingProtector
 from eis.tools.models import (
     AuditEvent,
@@ -58,7 +59,7 @@ class SecureExecutor:
         definition: ToolDefinition | None = None
         status = ExecutionStatus.FAILED
         error: str | None = None
-        authorization = "unknown"
+        authorization = AuthorizationStatus.UNKNOWN
         result = ToolResult(ExecutionStatus.FAILED, request_id=request.request_id)
         try:
             definition = self._definition(request.tool)
@@ -67,7 +68,7 @@ class SecureExecutor:
             if missing:
                 raise ToolSecurityError(f"missing permissions: {', '.join(sorted(missing))}")
             self._policy.authorize(request, definition)
-            authorization = "allowed"
+            authorization = AuthorizationStatus.ALLOWED
             result = await asyncio.wait_for(
                 self._tools[request.tool].execute(request),
                 timeout=definition.timeout_seconds,
@@ -86,7 +87,7 @@ class SecureExecutor:
         except (ToolSecurityError, PermissionError) as exc:
             status = ExecutionStatus.DENIED
             error = str(exc)
-            authorization = "denied"
+            authorization = AuthorizationStatus.DENIED
             return ToolResult(status, error=error, request_id=request.request_id)
         except Exception as exc:
             status = ExecutionStatus.FAILED
