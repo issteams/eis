@@ -15,8 +15,8 @@ from eis.security.models import (
     Permission,
     Principal,
     ResourceRestriction,
-    Role,
     RiskLevel,
+    Role,
 )
 from eis.security.protocols import (
     ApprovalGate,
@@ -43,6 +43,7 @@ from eis.security.runtime import (
 from eis.security.secrets import EnvironmentSecretProvider
 
 __all__ = [
+    "HIGH_RISK_ACTIONS",
     "ActionRequest",
     "ActionType",
     "AgentIdentity",
@@ -63,16 +64,15 @@ __all__ = [
     "GovernanceGuardProtocol",
     "GovernanceLimitError",
     "GovernanceLimits",
-    "HIGH_RISK_ACTIONS",
     "InMemoryApprovalGate",
     "InMemoryAuditSink",
     "Permission",
     "Principal",
     "RedactingProtector",
     "ResourceRestriction",
+    "RiskLevel",
     "Role",
     "RoleAuthorizer",
-    "RiskLevel",
     "SecretProvider",
     "SecurityError",
     "SecurityGateway",
