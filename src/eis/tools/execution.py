@@ -113,10 +113,10 @@ class SecureExecutor:
                     agent_id=request.agent_id,
                     task_id=request.task_id,
                     arguments=self._protector.redact(dict(request.arguments)),
-                    error=self._protector.redact(error if error is not None else result.error),
+                    error=self._protector.redact_text(error if error is not None else result.error),
                     duration_seconds=time.monotonic() - started,
                     actor=request.actor_id,
-                    target=self._protector.redact(request.target),
+                    target=self._protector.redact_text(request.target),
                     authorization=authorization,
                 )
             )
