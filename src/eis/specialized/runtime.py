@@ -14,7 +14,6 @@ from .models import (
 )
 from .protocols import AgentFactory, SpecializedAgent
 
-
 SPECS: dict[AgentKind, AgentSpec] = {
     AgentKind.RESEARCH: AgentSpec(
         AgentKind.RESEARCH,
