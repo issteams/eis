@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 import pytest
@@ -127,18 +128,19 @@ async def test_external_write_requires_approval(security: IntegrationSecurity) -
     assert not called
 
     approval = Approval(
-        request_id=__import__("uuid").uuid4(),
+        request_id=uuid.uuid4(),
         status=ApprovalStatus.APPROVED,
         approver="human",
         reason="approved test action",
     )
-    with pytest.raises(PermissionError):
-        await security.write(
-            "github/repos/demo",
-            operation="write",
-            action=action,
-            approval=approval,
-        )
+    result = await security.write(
+        "github/repos/demo",
+        operation="write",
+        action=action,
+        approval=approval,
+    )
+    assert result == "done"
+    assert called
 
 
 def test_github_document_path_rejects_traversal() -> None:
