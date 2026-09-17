@@ -134,7 +134,9 @@ class EngineeringWorkflow:
                 if approval is None and phase in self.approval_phases:
                     waiting = self.store.load(str(current.request.id))
                     if waiting is None:
-                        raise KeyError(f"workflow disappeared during approval checkpoint: {current.request.id}")
+                        raise KeyError(
+                            f"workflow disappeared during approval checkpoint: {current.request.id}"
+                        )
                     return self._report(waiting)
                 event = await self._execute(current, phase, approval)
             except WorkflowEscalation as exc:
