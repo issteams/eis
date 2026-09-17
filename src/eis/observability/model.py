@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncIterator
 
 from eis.models.interfaces import (
     EmbeddingRequest,
@@ -85,7 +86,7 @@ class InstrumentedModel:
             )
         )
 
-    def stream(self, request: GenerationRequest):
+    def stream(self, request: GenerationRequest) -> AsyncIterator[str]:
         return self._model.stream(request)
 
 
