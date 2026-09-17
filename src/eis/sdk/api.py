@@ -17,16 +17,20 @@ from eis.sdk.models import (
     AuditEntry,
     EngineeringResult,
     EvaluationResult,
+    ExecutionResult,
     KnowledgeItem,
     Product,
     Task,
     TaskResult,
     TaskStatus,
+    WorkflowResult,
 )
 
 AgentHandler = Callable[[Task], Any]
 EvaluatorHandler = Callable[[str], EvaluationResult | Awaitable[EvaluationResult]]
 EngineeringHandler = Callable[[Task], Any]
+ToolHandler = Callable[[dict[str, Any]], Any]
+WorkflowHandler = Callable[[Task], Any]
 
 
 class Agent(Protocol):
@@ -47,6 +51,26 @@ class Engineer(Protocol):
     """Public engineering execution contract."""
 
     def execute(self, task: Task) -> Any: ...
+
+
+class Tool(Protocol):
+    """Public tool contract; security remains the application's responsibility."""
+
+    name: str
+
+    def execute(self, arguments: dict[str, Any]) -> Any: ...
+
+
+class Executor(Protocol):
+    """Public execution contract for application-owned executors."""
+
+    def execute(self, action: str, arguments: dict[str, Any]) -> Any: ...
+
+
+class Orchestrator(Protocol):
+    """Public workflow orchestration contract."""
+
+    def run(self, workflow: str, task: Task) -> Any: ...
 
 
 @dataclass(slots=True)
@@ -74,6 +98,7 @@ class EIS:
         self._knowledge: dict[UUID, KnowledgeItem] = {}
         self._tasks: dict[UUID, TaskResult] = {}
         self._agents: dict[str, _RegisteredAgent] = {}
+        self._tools: dict[str, ToolHandler] = {}
         self._memory = _Memory()
         self._audit: list[AuditEntry] = []
 
@@ -179,6 +204,27 @@ class EIS:
             )
             return AgentResult(agent, task, error=str(exc), completed=False)
 
+    def register_tool(self, name: str, handler: ToolHandler) -> None:
+        """Register an application-owned tool handler."""
+        if not name.strip():
+            raise ValueError("tool name must not be empty")
+        self._tools[name] = handler
+
+    async def execute(self, action: str, arguments: dict[str, Any]) -> ExecutionResult:
+        """Execute a registered tool through the stable SDK boundary."""
+        handler = self._tools.get(action)
+        if handler is None:
+            raise KeyError(f"tool is not registered: {action}")
+        try:
+            output = handler(arguments)
+            if inspect.isawaitable(output):
+                output = await output
+            self._record_audit("tool.execute", "success", target=action)
+            return ExecutionResult(action, True, output=output)
+        except Exception as exc:
+            self._record_audit("tool.execute", "failed", target=action, failure=str(exc))
+            return ExecutionResult(action, False, error=str(exc))
+
     async def evaluate_idea(
         self,
         subject: str,
@@ -216,6 +262,22 @@ class EIS:
             )
             return EngineeringResult(task, "failed", str(exc), raw=None)
 
+    async def orchestrate(self, workflow: str, task: Task, runner: Orchestrator | WorkflowHandler) -> WorkflowResult:
+        """Run an explicit workflow adapter without exposing orchestration internals."""
+        if not workflow.strip():
+            raise ValueError("workflow name must not be empty")
+        try:
+            output = runner.run(workflow, task) if hasattr(runner, "run") else runner(task)
+            if inspect.isawaitable(output):
+                output = await output
+            self._record_audit("workflow.run", "success", task_id=str(task.id), target=workflow)
+            return WorkflowResult(workflow, True, output=output)
+        except Exception as exc:
+            self._record_audit(
+                "workflow.run", "failed", task_id=str(task.id), target=workflow, failure=str(exc)
+            )
+            return WorkflowResult(workflow, False, error=str(exc))
+
     def audit_history(self, *, limit: int | None = None) -> tuple[AuditEntry, ...]:
         """Return sanitized SDK audit history."""
         entries = tuple(self._audit)
@@ -246,4 +308,12 @@ class EIS:
         )
 
 
-__all__ = ["Agent", "EIS", "Engineer", "Evaluator"]
+__all__ = [
+    "Agent",
+    "EIS",
+    "Engineer",
+    "Executor",
+    "Evaluator",
+    "Orchestrator",
+    "Tool",
+]
