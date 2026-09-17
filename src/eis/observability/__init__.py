@@ -12,6 +12,7 @@ from eis.observability.models import (
     TaskMetric,
     TraceContext,
 )
+from eis.observability.performance import PerformanceRecorder
 from eis.observability.resilience import ConcurrencyLimiter, RetryPolicy, retry_async
 from eis.observability.runtime import MetricsRegistry, Observability, StructuredLogger, Tracer
 from eis.observability.worker import Worker
@@ -29,6 +30,7 @@ __all__ = [
     "MetricsRegistry",
     "ModelUsageMetric",
     "Observability",
+    "PerformanceRecorder",
     "ProductionSettings",
     "RetryPolicy",
     "SpanRecord",
