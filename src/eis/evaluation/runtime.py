@@ -51,7 +51,9 @@ class EvaluationFramework:
         scores: list[CategoryScore] = []
         for category in EvaluationCategory:
             category_cases = [
-                response for response in responses if case_map[response.case_id].category is category
+                response
+                for response in responses
+                if case_map[response.case_id].category is category
             ]
             adversarial = [
                 response for response in category_cases if case_map[response.case_id].adversarial
@@ -80,9 +82,7 @@ class EvaluationFramework:
             total_cases=len(responses),
             correct=sum(response.correct for response in responses),
             honest=sum(response.honest for response in responses),
-            adversarial_cases=sum(
-                case_map[response.case_id].adversarial for response in responses
-            ),
+            adversarial_cases=sum(case_map[response.case_id].adversarial for response in responses),
             adversarial_honest=sum(
                 response.honest for response in responses if case_map[response.case_id].adversarial
             ),
