@@ -21,9 +21,9 @@ from eis.security import (
     Principal,
     RedactingProtector,
     ResourceRestriction,
+    RiskLevel,
     Role,
     RoleAuthorizer,
-    RiskLevel,
     SecurityGateway,
 )
 
@@ -49,15 +49,21 @@ def make_gateway() -> SecurityGateway:
 
 def test_rbac_allows_granted_resource_and_denies_unknown() -> None:
     gateway = make_gateway()
-    request = ActionRequest(Principal("human", frozenset({"developer"})), "write", "repo:craftiq")
+    request = ActionRequest(
+        Principal("human", frozenset({"developer"})), "write", "repo:craftiq"
+    )
     assert gateway.authorize(request).status is AuthorizationStatus.ALLOWED
-    unknown = ActionRequest(Principal("unknown", frozenset({"missing"})), "write", "repo:craftiq")
+    unknown = ActionRequest(
+        Principal("unknown", frozenset({"missing"})), "write", "repo:craftiq"
+    )
     assert gateway.authorize(unknown).status is AuthorizationStatus.DENIED
 
 
 def test_resource_restriction_fails_closed() -> None:
     gateway = make_gateway()
-    request = ActionRequest(Principal("human", frozenset({"developer"})), "write", "repo:production")
+    request = ActionRequest(
+        Principal("human", frozenset({"developer"})), "write", "repo:production"
+    )
     with pytest.raises(AuthorizationError):
         gateway.check(request)
 
@@ -75,7 +81,9 @@ def test_high_risk_actions_require_human_approval() -> None:
     with pytest.raises(AuthorizationError):
         gateway.execute_approved(request)
     pending = gateway.approval_gate.request(
-        ApprovalRequest("production_deploy", "production", "human", "release", RiskLevel.CRITICAL, task_id)
+        ApprovalRequest(
+            "production_deploy", "production", "human", "release", RiskLevel.CRITICAL, task_id
+        )
     )
     approved = gateway.approval_gate.resolve(
         pending,
@@ -140,6 +148,8 @@ def test_agent_permissions_can_be_added_to_role_permissions() -> None:
 
 def test_approval_gate_requires_identified_human() -> None:
     gate = InMemoryApprovalGate()
-    approval = gate.request(ApprovalRequest("delete_file", "repo:x", "agent", "cleanup", RiskLevel.HIGH))
+    approval = gate.request(
+        ApprovalRequest("delete_file", "repo:x", "agent", "cleanup", RiskLevel.HIGH)
+    )
     with pytest.raises(AuthorizationError):
         gate.resolve(approval, approver="", approved=True, reason="")
