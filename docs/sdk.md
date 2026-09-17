@@ -37,7 +37,6 @@ model or provider.
 ```python
 async def run(task):
     return {"objective": task.objective}
-
 eis.register_agent("architect", run)
 result = await eis.run_agent("architect", task)
 ```
@@ -60,7 +59,7 @@ result = await eis.execute_engineering(task, engineer)
 
 ## Tools and execution
 
-Tools must be registered explicitly and return an `ExecutionResult`:
+Tools must be registered explicitly:
 
 ```python
 result = await eis.execute("repository.inspect", path="src/eis")
