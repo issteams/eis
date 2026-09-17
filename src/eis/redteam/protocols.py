@@ -7,7 +7,6 @@ from typing import Protocol
 
 from eis.redteam.models import AttackCase, AttackObservation
 
-
 RedTeamTarget = Callable[[AttackCase], AttackObservation | Awaitable[AttackObservation]]
 
 
