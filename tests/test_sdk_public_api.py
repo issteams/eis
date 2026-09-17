@@ -73,9 +73,28 @@ def test_engineering_adapter_and_audit() -> None:
     asyncio.run(run())
 
 
+def test_tool_execution_and_orchestration() -> None:
+    async def run() -> None:
+        eis = EIS()
+        task = eis.create_task("run workflow")
+        eis.register_tool("echo", lambda args: args["value"])
+
+        execution = await eis.execute("echo", {"value": "hello"})
+        workflow = await eis.orchestrate("demo", task, lambda current: current.objective)
+
+        assert execution.success is True
+        assert execution.output == "hello"
+        assert workflow.success is True
+        assert workflow.output == "run workflow"
+
+    asyncio.run(run())
+
+
 def test_public_exports_do_not_require_internal_runtime_objects() -> None:
     import eis.sdk as sdk
 
     assert hasattr(sdk, "EIS")
     assert hasattr(sdk, "Task")
     assert hasattr(sdk, "EvaluationResult")
+    assert hasattr(sdk, "ExecutionResult")
+    assert hasattr(sdk, "WorkflowResult")
