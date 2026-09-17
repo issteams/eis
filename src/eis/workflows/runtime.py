@@ -62,9 +62,7 @@ class EngineeringWorkflow:
             return self._report(state)
         return await self._run(state)
 
-    async def resume(
-        self, workflow_id: str, approval: Approval | None = None
-    ) -> WorkflowReport:
+    async def resume(self, workflow_id: str, approval: Approval | None = None) -> WorkflowReport:
         """Resume a waiting workflow only with its matching approved checkpoint."""
         state = self.store.load(workflow_id)
         if state is None:
@@ -175,9 +173,7 @@ class EngineeringWorkflow:
         self.store.save(completed)
         return self._report(completed)
 
-    def _checkpoint(
-        self, state: WorkflowState, phase: WorkflowPhase
-    ) -> Approval | None:
+    def _checkpoint(self, state: WorkflowState, phase: WorkflowPhase) -> Approval | None:
         if phase not in self.approval_phases:
             return None
         cached = self._approval_cache.pop(str(state.request.id), None)
@@ -220,7 +216,7 @@ class EngineeringWorkflow:
     ) -> WorkflowEvent:
         action = ActionRequest(
             actor=self.principal,
-            action=f"workflow.{phase.value}",
+            action="write" if phase is WorkflowPhase.IMPLEMENT else "read",
             resource=state.request.repository,
             risk_level=RiskLevel.HIGH if phase is WorkflowPhase.IMPLEMENT else RiskLevel.MEDIUM,
             target=str(state.request.id),
