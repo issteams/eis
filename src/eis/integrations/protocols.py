@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from eis.integrations.models import CIRun, Change, Document, RepositoryRef, RepositorySnapshot
+from eis.integrations.models import Change, CIRun, Document, RepositoryRef, RepositorySnapshot
 from eis.security.models import Approval
 
 
