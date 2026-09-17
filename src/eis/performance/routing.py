@@ -27,7 +27,9 @@ class RoutingPolicy:
     default_route: str
     task_routes: dict[str, str] = field(default_factory=dict)
     expensive_tasks: frozenset[str] = frozenset({"verification", "security_review"})
-    cacheable_tasks: frozenset[str] = frozenset({"classification", "drafting", "summarization"})
+    cacheable_tasks: frozenset[str] = frozenset(
+        {"classification", "drafting", "summarization"}
+    )
 
 
 class ModelRouter:
