@@ -28,11 +28,13 @@ class MetricsRegistry:
     """In-process counters, gauges and histograms with Prometheus text output."""
 
     def __init__(self) -> None:
-        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(float)
+        self._counters: defaultdict[
+            tuple[str, tuple[tuple[str, str], ...]], float
+        ] = defaultdict(float)
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
-        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = (
-            defaultdict(list)
-        )
+        self._histograms: defaultdict[
+            tuple[str, tuple[tuple[str, str], ...]], list[float]
+        ] = defaultdict(list)
 
     @staticmethod
     def _key(name: str, labels: dict[str, str]) -> tuple[str, tuple[tuple[str, str], ...]]:
@@ -78,7 +80,11 @@ class StructuredLogger:
     """Structured JSON logging with safe context propagation."""
 
     def __init__(self, name: str = "eis", *, json_output: bool = True) -> None:
-        renderer = structlog.processors.JSONRenderer() if json_output else structlog.dev.ConsoleRenderer()
+        renderer = (
+            structlog.processors.JSONRenderer()
+            if json_output
+            else structlog.dev.ConsoleRenderer()
+        )
         structlog.configure(
             processors=[
                 structlog.contextvars.merge_contextvars,
