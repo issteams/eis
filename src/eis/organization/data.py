@@ -121,6 +121,7 @@ RELATIONSHIPS = (
     Relationship("craftiq", "belongs_to", "echowavs"),
     Relationship("stitchai", "belongs_to", "echowavs"),
     Relationship("smarket", "part_of", "stitchai"),
+    Relationship("smarket", "belongs_to", "echowavs"),
     Relationship("eis", "belongs_to", "echowavs"),
     Relationship("craftiq", "uses", "repo-issteams-craftiq"),
     Relationship("eis", "uses", "repo-issteams-eis"),
