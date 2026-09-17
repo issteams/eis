@@ -1,28 +1,30 @@
 # EIS — Echowavs Intelligence System
 
-EIS is the central intelligence and controlled autonomous execution platform of Echowavs.
+EIS is the intelligence and controlled autonomous execution foundation of Echowavs.
 
 > **Defining principle: Honest Intelligence.**
 
-EIS is designed to understand Echowavs, its products, engineering standards, decisions, repositories, workflows and organizational knowledge; evaluate ideas honestly; support research and planning; build and verify software; and eventually operate as a controlled autonomous system.
+EIS provides explicit boundaries for organizational knowledge, memory, reasoning, agents, tools, controlled execution, verification, security, governance, observability, integrations, durable workflows, and performance optimization.
 
 ## Honest Intelligence
 
-EIS must not optimize for agreement. It must distinguish:
+EIS distinguishes:
 
-- **Fact / evidence** — information supported by a traceable source.
-- **Inference** — a conclusion derived from available evidence.
+- **Fact / evidence** — supported by a traceable source.
+- **Inference** — derived from available evidence.
 - **Opinion** — a preference or value judgment.
-- **Uncertainty** — what is unknown, weakly supported, or ambiguous.
-- **Proposed action** — an action that may be taken, subject to applicable policy and authorization.
+- **Uncertainty** — unknown, ambiguous, or weakly supported information.
+- **Proposed action** — an action subject to authorization and policy.
 
-When evidence is insufficient, EIS must be able to say so. It must never manufacture certainty or claim that an unimplemented capability works.
+EIS must not manufacture certainty or claim that an unimplemented integration or capability has succeeded.
 
-## Foundation status
+Read [`docs/honest-intelligence.md`](docs/honest-intelligence.md) for the behavioral principles.
 
-The repository contains the production-oriented architectural foundation of EIS, including organizational intelligence, model abstraction, context retrieval, agent lifecycle contracts, secure tools, autonomous engineering, verification, specialized agents, security/governance, production infrastructure/observability, controlled external integrations, and resumable end-to-end engineering workflows.
+## Current status
 
-The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces.
+The repository contains a production-oriented Python foundation and public SDK. It includes typed domain contracts, provider-independent model abstractions, knowledge and memory boundaries, agent/tool/execution contracts, verification and integrity components, security/governance, durable engineering workflows, integrations, observability, and Phase 20 performance controls.
+
+The SDK itself keeps simple state in process. External providers and infrastructure are explicit adapters; EIS does not silently choose an LLM, repository host, database, or unrestricted execution environment.
 
 ## Architecture
 
@@ -30,86 +32,118 @@ The model layer defines stable interfaces for generation, structured generation,
 src/eis/
 ├── core/          # shared contracts, value objects, errors
 ├── config/        # typed environment configuration
-├── knowledge/     # canonical organizational knowledge boundary
-├── memory/        # session/agent memory boundary
+├── knowledge/     # organizational knowledge boundary
+├── memory/        # memory boundary
 ├── reasoning/     # evidence-aware reasoning contracts
 ├── integrity/     # provenance and honesty invariants
 ├── models/        # provider-independent model abstraction
 ├── agents/        # agent capability/lifecycle contracts
 ├── tools/         # explicit external capability contracts
 ├── execution/     # controlled side effects
-├── evaluation/    # verification and evaluation contracts
+├── evaluation/    # verification/evaluation contracts
 ├── orchestration/ # workflow coordination
-├── workflows/     # durable end-to-end engineering workflows
+├── workflows/     # durable engineering workflows
 ├── security/      # authorization and policy boundary
-├── observability/ # logs, metrics, traces, health and job recovery
-├── performance/   # Phase 20 caching, routing, context and scheduling
+├── observability/ # logs, metrics, health and recovery
+├── performance/   # caching, routing, context and scheduling
 ├── adapters/      # replaceable infrastructure providers
-├── integrations/  # controlled Echowavs system adapters
-└── sdk/           # public SDK facade
+├── integrations/  # controlled system adapters
+└── sdk/           # public application facade
 ```
 
-The core is deliberately independent of any particular LLM provider, embedding engine, vector database, repository host or execution technology. Provider adapters implement protocols instead of being imported by domain code.
+See [`docs/architecture.md`](docs/architecture.md) and [`docs/vision.md`](docs/vision.md).
 
-## Autonomous engineering workflows
-
-Phase 19 provides a durable workflow boundary for high-level engineering requests. A request can move through understanding, knowledge retrieval, product inspection, evaluation, risk identification, planning, architecture review, approval, implementation, testing, debugging, correction, security review, requirement verification, documentation, and final reporting.
-
-Workflows are persisted in SQLite and can safely stop at human approval checkpoints, survive process interruption, resume from the stored phase, and escalate when autonomous continuation is unsafe. External capabilities are injected through operation protocols; EIS does not invent or tightly couple unavailable integrations.
-
-See [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) for the workflow and governance model.
-
-## Phase 20 — Performance, Scalability and Cost Optimization
-
-Phase 20 profiles and optimizes EIS without weakening verification or evidence quality. It adds:
-
-- bounded async response caching with single-flight protection;
-- evidence-aware context compaction with provenance preservation;
-- deterministic model routing with explicit-model precedence;
-- bounded priority scheduling and concurrency controls;
-- bounded batching for independent work;
-- transient-only retry optimization with capped backoff and jitter;
-- top-k retrieval optimization and parallel context retrievers;
-- retrieval, database, memory, model, agent, tool and cost metrics;
-- reproducible performance benchmarks and scalability documentation.
-
-See [`docs/architecture/performance.md`](docs/architecture/performance.md).
-
-Run the local benchmark suite with:
-
-```bash
-python -m benchmarks.phase20
-```
-
-The benchmark writes `benchmark-results/phase20.json`. Its model measurement is intentionally local and deterministic; real provider latency and cost must be read from live EIS observability data.
-
-## Production operations
-
-See [`docs/architecture/production.md`](docs/architecture/production.md) for deployment topology, health/readiness behavior, recovery semantics, observability dashboards, safe degradation and scaling guidance.
-
-A non-secret environment configuration template is provided at [`deploy/production.env.example`](deploy/production.env.example). Credentials and provider keys must come from the deployment environment or a secret manager; they are never committed to the repository.
-
-## Development
-
-Requirements: Python 3.11+.
+## Quick start
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
+```
+
+Then:
+
+```python
+from eis import EIS
+
+runtime = EIS()
+runtime.register_product("CraftIQ", "AI marketing platform")
+print(runtime.products())
+```
+
+The supported public import surfaces are `eis` and `eis.sdk`.
+
+## SDK example
+
+```python
+from eis import EIS
+from eis.sdk import AgentResult
+
+runtime = EIS()
+task = runtime.create_task("Inspect the architecture")
+
+async def handler(task):
+    return AgentResult(
+        agent="architect",
+        task=task,
+        output={"status": "inspected"},
+        completed=True,
+    )
+
+runtime.register_agent("architect", handler)
+result = await runtime.run_agent("architect", task)
+```
+
+For the complete supported SDK surface, see [`docs/sdk.md`](docs/sdk.md) and [`docs/api-reference.md`](docs/api-reference.md). The executable quickstart is [`examples/sdk_quickstart.py`](examples/sdk_quickstart.py).
+
+## Phase 20 performance
+
+Phase 20 adds bounded async caching, evidence-aware context optimization, deterministic model routing, bounded scheduling/concurrency, batching, transient-only retries, retrieval optimization, parallel context retrieval, and performance/cost metrics. These controls do not remove verification or provenance.
+
+Run the deterministic local benchmark with:
+
+```bash
+python -m benchmarks.performance
+```
+
+The benchmark uses local deterministic doubles. Real provider latency, token usage, and cost must be measured from deployment observability.
+
+## Production
+
+Start with [`deploy/production.env.example`](deploy/production.env.example). Production architecture, persistence, recovery, health, observability, and scaling guidance are documented in [`docs/deployment.md`](docs/deployment.md) and [`docs/architecture/production.md`](docs/architecture/production.md).
+
+## Development and validation
+
+```bash
 ruff check .
 ruff format --check .
 mypy src
 pytest --cov=eis --cov-report=term-missing
 ```
 
-CI runs linting, formatting checks, strict type checking and tests on Python 3.11 and 3.12.
+See [`docs/installation.md`](docs/installation.md), [`docs/configuration.md`](docs/configuration.md), [`docs/development.md`](docs/development.md), and [`docs/testing.md`](docs/testing.md).
 
-## Documentation
+## Documentation map
 
-- [`docs/architecture.md`](docs/architecture.md) — architecture and domain boundaries.
-- [`docs/architecture/production.md`](docs/architecture/production.md) — production infrastructure and observability.
-- [`docs/architecture/performance.md`](docs/architecture/performance.md) — Phase 20 performance, scalability and cost controls.
-- [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) — Phase 19 workflow lifecycle and governance.
-- [`docs/development.md`](docs/development.md) — setup and engineering rules.
-- [`docs/decisions/0001-foundation-boundaries.md`](docs/decisions/0001-foundation-boundaries.md) — initial architecture decision record.
+| Area | Documentation |
+| --- | --- |
+| Vision | [`docs/vision.md`](docs/vision.md) |
+| Core principles | [`docs/principles.md`](docs/principles.md) |
+| Honest Intelligence | [`docs/honest-intelligence.md`](docs/honest-intelligence.md) |
+| Architecture | [`docs/architecture.md`](docs/architecture.md) |
+| Installation | [`docs/installation.md`](docs/installation.md) |
+| Configuration | [`docs/configuration.md`](docs/configuration.md) |
+| SDK | [`docs/sdk.md`](docs/sdk.md) |
+| Knowledge, memory, agents, tools, execution, verification | [`docs/systems.md`](docs/systems.md) |
+| Security and governance | [`docs/architecture/security-governance.md`](docs/architecture/security-governance.md) |
+| Integrations | [`docs/integrations.md`](docs/integrations.md) |
+| Development | [`docs/development.md`](docs/development.md) |
+| Testing | [`docs/testing.md`](docs/testing.md) |
+| Deployment | [`docs/deployment.md`](docs/deployment.md) |
+| Troubleshooting | [`docs/troubleshooting.md`](docs/troubleshooting.md) |
+| API reference | [`docs/api-reference.md`](docs/api-reference.md) |
+| ADRs | [`docs/decisions/README.md`](docs/decisions/README.md) |
+| Contribution | [`docs/contributing.md`](docs/contributing.md) |
+| Release process | [`docs/release.md`](docs/release.md) |
+
+Detailed subsystem documentation is under [`docs/architecture/`](docs/architecture/), including knowledge, memory, model abstraction, agents, tools, verification, security, production, performance, integrations, and autonomous workflows.
