@@ -26,9 +26,7 @@ def test_cache_single_flight() -> None:
             await asyncio.sleep(0.01)
             return "value"
 
-        values = await asyncio.gather(
-            *(cache.get_or_set("same", factory) for _ in range(8))
-        )
+        values = await asyncio.gather(*(cache.get_or_set("same", factory) for _ in range(8)))
         assert values == ["value"] * 8
         assert calls == 1
         assert cache.stats().misses == 8
@@ -40,12 +38,9 @@ def test_cache_single_flight() -> None:
 
 
 def test_context_budget_keeps_high_score_evidence() -> None:
-    provenance = ProvenanceRecord(
-        "source", SourceKind.KNOWLEDGE, "knowledge://1", authority=1.0
-    )
+    provenance = ProvenanceRecord("source", SourceKind.KNOWLEDGE, "knowledge://1", authority=1.0)
     items = [ContextItem.create("high " + "x" * 100, provenance, relevance=1.0)] + [
-        ContextItem.create(f"low-{i} " + "x" * 100, provenance, relevance=0.1)
-        for i in range(20)
+        ContextItem.create(f"low-{i} " + "x" * 100, provenance, relevance=0.1) for i in range(20)
     ]
     result = optimize_context(
         items,
