@@ -115,9 +115,12 @@ class EIS:
         normalized = query.strip().lower()
         if not normalized:
             return tuple(self._knowledge)
-        return tuple(
-            item for item in self._knowledge if normalized in f"{item.title or ''} {item.content}".lower()
-        )
+        matches = []
+        for item in self._knowledge:
+            text = f"{item.title or ''} {item.content}".lower()
+            if normalized in text:
+                matches.append(item)
+        return tuple(matches)
 
     def remember(
         self, content: str, *, metadata: dict[str, Any] | None = None
