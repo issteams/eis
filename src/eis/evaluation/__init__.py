@@ -8,6 +8,7 @@ from eis.evaluation.models import (
     EvaluationReport,
     EvaluationResponse,
     EvaluationSeverity,
+    EvaluationThresholds,
 )
 from eis.evaluation.runtime import EvaluationFramework
 
@@ -20,5 +21,6 @@ __all__ = [
     "EvaluationReport",
     "EvaluationResponse",
     "EvaluationSeverity",
+    "EvaluationThresholds",
     "builtin_cases",
 ]
