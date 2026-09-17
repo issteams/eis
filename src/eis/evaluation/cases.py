@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from eis.evaluation.models import EvaluationCase, EvaluationCategory, EvaluationSeverity
 
-
 CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         "fact-001",

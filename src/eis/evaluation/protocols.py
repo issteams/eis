@@ -8,7 +8,6 @@ from typing import Protocol
 from eis.core.protocols import Evaluator
 from eis.evaluation.models import EvaluationCase, EvaluationResponse
 
-
 EvaluationRunner = Callable[[EvaluationCase], EvaluationResponse | Awaitable[EvaluationResponse]]
 
 
