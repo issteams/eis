@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from eis.integrations.models import (
-    CIRun,
     Change,
+    CIRun,
     Document,
     EngineeringRequest,
     RepositoryRef,
