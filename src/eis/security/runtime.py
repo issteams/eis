@@ -42,11 +42,7 @@ class GovernanceLimitError(SecurityError):
 
 @dataclass(frozen=True, slots=True)
 class TokenAuthenticator:
-    """Minimal credential interface implementation for integration tests.
-
-    Production deployments should replace this with an identity-provider adapter;
-    credentials are never persisted by this class.
-    """
+    """Minimal credential interface implementation for integration tests."""
 
     credentials: dict[str, str] = field(default_factory=dict)
 
@@ -103,10 +99,8 @@ class RoleAuthorizer:
         identity = self.principals.get(principal)
         if identity is None:
             return False
-        return (
-            self.authorize(AuthorizationRequest(identity, action, resource)).status
-            is AuthorizationStatus.ALLOWED
-        )
+        decision = self.authorize(AuthorizationRequest(identity, action, resource))
+        return decision.status is AuthorizationStatus.ALLOWED
 
 
 @dataclass(slots=True)
@@ -163,8 +157,10 @@ class RedactingProtector:
             return result
         if isinstance(value, dict):
             return {str(key): self.redact(item) for key, item in value.items()}
-        if isinstance(value, (list, tuple)):
-            return type(value)(self.redact(item) for item in value)
+        if isinstance(value, list):
+            return [self.redact(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(self.redact(item) for item in value)
         return value
 
     def redact_text(self, value: str | None) -> str | None:
