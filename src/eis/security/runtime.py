@@ -76,9 +76,10 @@ class RoleAuthorizer:
                     f"unknown role: {role_name}",
                 )
             permissions.update(role.permissions)
+        if request.agent is not None:
+            permissions.update(request.agent.permissions)
         if not any(
-            permission.action == request.action
-            and fnmatch(request.resource, permission.resource)
+            permission.action == request.action and fnmatch(request.resource, permission.resource)
             for permission in permissions
         ):
             return AuthorizationDecision(AuthorizationStatus.DENIED, "permission not granted")
@@ -137,9 +138,7 @@ class InMemoryAuditSink:
 
 _SECRET_PATTERNS = (
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"),
-    re.compile(
-        r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"
-    ),
+    re.compile(r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"),
 )
 _SENSITIVE_KEYS = frozenset(
     {"password", "passwd", "secret", "token", "api_key", "api-key", "authorization"}
