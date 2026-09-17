@@ -66,7 +66,8 @@ class AsyncResponseCache(Generic[T]):
 
     async def set(self, key: str, value: T, *, ttl_seconds: float | None = None) -> None:
         async with self._lock:
-            self._entries[key] = _Entry(value, time.monotonic() + (ttl_seconds or self._ttl))
+            ttl = ttl_seconds or self._ttl
+            self._entries[key] = _Entry(value, time.monotonic() + ttl)
             self._entries.move_to_end(key)
             self._stores += 1
             while len(self._entries) > self._max_entries:
