@@ -36,7 +36,7 @@ class InstrumentedModel:
             response = await self._model.generate(request)
         except Exception:
             self._observability.metrics.increment(
-                "eis_model_failures_total", operation="generate"
+                "eis_model_failures_total", value=1.0, operation="generate"
             )
             raise
         self._record(response, time.monotonic() - started)
@@ -50,7 +50,7 @@ class InstrumentedModel:
             response = await self._model.generate_structured(request)
         except Exception:
             self._observability.metrics.increment(
-                "eis_model_failures_total", operation="generate_structured"
+                "eis_model_failures_total", value=1.0, operation="generate_structured"
             )
             raise
         self._record(response, time.monotonic() - started)
@@ -61,7 +61,9 @@ class InstrumentedModel:
         try:
             response = await self._model.embed(request)
         except Exception:
-            self._observability.metrics.increment("eis_model_failures_total", operation="embed")
+            self._observability.metrics.increment(
+                "eis_model_failures_total", value=1.0, operation="embed"
+            )
             raise
         self._record(response, time.monotonic() - started)
         return response
