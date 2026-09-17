@@ -30,8 +30,8 @@ class MetricsRegistry:
     def __init__(self) -> None:
         self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(float)
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
-        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = defaultdict(
-            list
+        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = (
+            defaultdict(list)
         )
 
     @staticmethod
@@ -56,9 +56,7 @@ class MetricsRegistry:
             samples.append(MetricSample(name, value, dict(labels), now))
         for (name, labels), values in self._histograms.items():
             if values:
-                samples.append(
-                    MetricSample(f"{name}_count", float(len(values)), dict(labels), now)
-                )
+                samples.append(MetricSample(f"{name}_count", float(len(values)), dict(labels), now))
                 samples.append(MetricSample(f"{name}_sum", sum(values), dict(labels), now))
         return samples
 
@@ -80,11 +78,7 @@ class StructuredLogger:
     """Structured JSON logging with safe context propagation."""
 
     def __init__(self, name: str = "eis", *, json_output: bool = True) -> None:
-        renderer = (
-            structlog.processors.JSONRenderer()
-            if json_output
-            else structlog.dev.ConsoleRenderer()
-        )
+        renderer = structlog.processors.JSONRenderer() if json_output else structlog.dev.ConsoleRenderer()
         structlog.configure(
             processors=[
                 structlog.contextvars.merge_contextvars,
