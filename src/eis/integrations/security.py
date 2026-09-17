@@ -20,14 +20,14 @@ class IntegrationSecurity:
     principal: Principal
 
     def check_read(self, resource: str, *, operation: str) -> None:
-        self.gateway.execute_approved(
-            ActionRequest(
-                self.principal,
-                "read",
-                resource,
-                target=operation,
-            )
+        request = ActionRequest(
+            self.principal,
+            "read",
+            resource,
+            target=operation,
         )
+        self.gateway.prepare(request)
+        self.gateway.complete(request)
 
     async def write(
         self,
@@ -44,10 +44,15 @@ class IntegrationSecurity:
             risk_level=RiskLevel.HIGH,
             target=operation,
         )
-        self.gateway.execute_approved(request, approval=approval)
-        result = action()
-        if inspect.isawaitable(result):
-            return await result
+        self.gateway.prepare(request, approval=approval)
+        try:
+            result = action()
+            if inspect.isawaitable(result):
+                result = await result
+        except Exception as exc:
+            self.gateway.complete(request, result="failed", failure=str(exc))
+            raise
+        self.gateway.complete(request)
         return result
 
 
