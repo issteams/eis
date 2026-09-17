@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+from collections.abc import Awaitable
 from enum import IntEnum
-from typing import Any, Awaitable, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
