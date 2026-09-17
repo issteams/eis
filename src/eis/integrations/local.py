@@ -27,8 +27,7 @@ class LocalRepositoryConnector:
             for item in path.rglob("*"):
                 relative = item.relative_to(path).as_posix()
                 if any(
-                    part in {".git", ".venv", "node_modules", "__pycache__"}
-                    for part in item.parts
+                    part in {".git", ".venv", "node_modules", "__pycache__"} for part in item.parts
                 ):
                     continue
                 if item.is_dir():
