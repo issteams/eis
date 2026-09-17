@@ -1,8 +1,8 @@
+"""Runtime for governed, resumable engineering workflows."""
+
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
 
 from eis.security.models import (
     ActionRequest,
@@ -15,6 +15,7 @@ from eis.security.models import (
 from eis.security.runtime import SecurityGateway
 
 from .models import (
+    WorkflowApproval,
     WorkflowEvent,
     WorkflowPhase,
     WorkflowReport,
@@ -22,35 +23,34 @@ from .models import (
     WorkflowState,
     WorkflowStatus,
 )
-from .protocols import WorkflowOperations, WorkflowStore
+from .protocols import WorkflowOperations
+from .store import WorkflowStore
+
+
+class WorkflowEscalation(RuntimeError):
+    """Raised when a workflow must stop and require human intervention."""
 
 
 @dataclass(slots=True)
 class EngineeringWorkflow:
+    """Execute the engineering lifecycle with persistence and governance gates."""
+
     operations: WorkflowOperations
     security: SecurityGateway
     principal: Principal
     store: WorkflowStore
     approval_phases: frozenset[WorkflowPhase] = frozenset({WorkflowPhase.IMPLEMENT})
+    _approval_cache: dict[str, Approval] = field(default_factory=dict, init=False, repr=False)
 
-    def __post_init__(self) -> None:
-        self._approval_cache: dict[str, Approval] = {}
-
-    async def start(self, request: WorkflowRequest) -> WorkflowReport:
-        state = WorkflowState(
-            request=request,
-            status=WorkflowStatus.PENDING,
-            phase_index=0,
-            events=(),
-            approval=None,
-            data={},
-            escalation_reason=None,
-        )
-        await self.store.save(state)
-        return await self.run(request.id)
+    def start(self, request: WorkflowRequest) -> WorkflowState:
+        """Create and persist a new workflow without executing it."""
+        state = WorkflowState(request=request)
+        self.store.save(state)
+        return state
 
     async def run(self, workflow_id: str) -> WorkflowReport:
-        state = await self.store.load(workflow_id)
+        """Run or resume a persisted workflow until a terminal/checkpoint state."""
+        state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"workflow {workflow_id!r} not found")
         if state.status in {
@@ -65,7 +65,8 @@ class EngineeringWorkflow:
     async def resume(
         self, workflow_id: str, approval: Approval | None = None
     ) -> WorkflowReport:
-        state = await self.store.load(workflow_id)
+        """Resume a waiting workflow only with its matching approved checkpoint."""
+        state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"workflow {workflow_id!r} not found")
         if state.status is not WorkflowStatus.WAITING_APPROVAL:
@@ -84,23 +85,18 @@ class EngineeringWorkflow:
                 WorkflowEvent(
                     phase=WorkflowPhase.APPROVAL,
                     status="completed",
-                    detail=approval.reason,
-                    evidence=(),
-                    failures=(),
-                    corrections=(),
-                    risks=(),
-                    uncertainty=(),
+                    detail=approval.reason or "workflow implementation approved",
                 ),
             ),
             approval=state.approval,
             data=state.data,
-            escalation_reason=None,
         )
-        await self.store.save(resumed)
+        self.store.save(resumed)
         return await self._run(resumed)
 
     async def escalate(self, workflow_id: str, reason: str) -> WorkflowReport:
-        state = await self.store.load(workflow_id)
+        """Persist a workflow escalation and stop autonomous execution."""
+        state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"workflow {workflow_id!r} not found")
         escalated = WorkflowState(
@@ -110,21 +106,18 @@ class EngineeringWorkflow:
             events=(
                 *state.events,
                 WorkflowEvent(
-                    phase=WorkflowPhase.ESCALATE,
+                    phase=WorkflowPhase.APPROVAL,
                     status="escalated",
                     detail=reason,
-                    evidence=(),
-                    failures=(),
-                    corrections=(),
                     risks=(reason,),
-                    uncertainty=(),
+                    uncertainty=("human intervention required",),
                 ),
             ),
             approval=state.approval,
             data=state.data,
             escalation_reason=reason,
         )
-        await self.store.save(escalated)
+        self.store.save(escalated)
         return self._report(escalated)
 
     async def _run(self, state: WorkflowState) -> WorkflowReport:
@@ -137,18 +130,20 @@ class EngineeringWorkflow:
             data=state.data,
             escalation_reason=None,
         )
-        await self.store.save(current)
+        self.store.save(current)
         phases = tuple(WorkflowPhase)
         while current.phase_index < len(phases):
             phase = phases[current.phase_index]
-            approval = await self._checkpoint(current, phase)
+            approval = self._checkpoint(current, phase)
             if approval is None and phase in self.approval_phases:
-                waiting = await self.store.load(current.request.id)
+                waiting = self.store.load(str(current.request.id))
                 if waiting is None:
                     raise RuntimeError("workflow checkpoint was not persisted")
                 return self._report(waiting)
             try:
                 event = await self._execute(current, phase, approval)
+            except WorkflowEscalation:
+                raise
             except Exception as exc:
                 failed = WorkflowState(
                     request=current.request,
@@ -160,39 +155,32 @@ class EngineeringWorkflow:
                             phase=phase,
                             status="failed",
                             detail=str(exc),
-                            evidence=(),
                             failures=(str(exc),),
-                            corrections=(),
-                            risks=(),
-                            uncertainty=(),
                         ),
                     ),
                     approval=current.approval,
                     data=current.data,
-                    escalation_reason=None,
                 )
-                await self.store.save(failed)
+                self.store.save(failed)
                 return self._report(failed)
             current = self._advance(current, event)
-            await self.store.save(current)
+            self.store.save(current)
         completed = WorkflowState(
             request=current.request,
             status=WorkflowStatus.COMPLETED,
             phase_index=current.phase_index,
             events=current.events,
-            approval=None,
             data=current.data,
-            escalation_reason=None,
         )
-        await self.store.save(completed)
+        self.store.save(completed)
         return self._report(completed)
 
-    async def _checkpoint(
+    def _checkpoint(
         self, state: WorkflowState, phase: WorkflowPhase
     ) -> Approval | None:
         if phase not in self.approval_phases:
             return None
-        cached = self._approval_cache.pop(state.request.id, None)
+        cached = self._approval_cache.pop(str(state.request.id), None)
         if cached is not None:
             return cached
         request = ApprovalRequest(
@@ -203,7 +191,7 @@ class EngineeringWorkflow:
             risk_level=RiskLevel.HIGH,
             task_id=state.request.id,
         )
-        approval_request = await self.security.approval_gate.request(request)
+        approval_request = self.security.approval_gate.request(request)
         checkpoint = WorkflowState(
             request=state.request,
             status=WorkflowStatus.WAITING_APPROVAL,
@@ -214,45 +202,37 @@ class EngineeringWorkflow:
                     phase=WorkflowPhase.APPROVAL,
                     status="waiting",
                     detail=request.reason,
-                    evidence=(),
-                    failures=(),
-                    corrections=(),
-                    risks=(),
-                    uncertainty=(),
                 ),
             ),
-            approval=state.approval.__class__(
+            approval=WorkflowApproval(
                 phase=phase,
                 resource=state.request.repository,
                 reason=request.reason,
-                approval_request_id=approval_request.id,
-            )
-            if state.approval is not None
-            else __import__("eis.workflows.models", fromlist=["WorkflowApproval"]).WorkflowApproval(
-                phase=phase,
-                resource=state.request.repository,
-                reason=request.reason,
-                approval_request_id=approval_request.id,
+                approval_request_id=approval_request.request_id,
             ),
             data=state.data,
-            escalation_reason=None,
         )
-        await self.store.save(checkpoint)
+        self.store.save(checkpoint)
         return None
 
     async def _execute(
         self, state: WorkflowState, phase: WorkflowPhase, approval: Approval | None
     ) -> WorkflowEvent:
         action = ActionRequest(
-            actor=self.principal.id,
+            actor=self.principal,
             action=f"workflow.{phase.value}",
             resource=state.request.repository,
-            risk=RiskLevel.HIGH if phase is WorkflowPhase.IMPLEMENT else RiskLevel.MEDIUM,
-            target=state.request.id,
+            risk_level=RiskLevel.HIGH if phase is WorkflowPhase.IMPLEMENT else RiskLevel.MEDIUM,
+            target=str(state.request.id),
+            task_id=state.request.id,
         )
-        authorization = await self.security.prepare(action, approval=approval)
-        result = await self.operations.execute(phase, state)
-        await self.security.complete(authorization, success=True)
+        self.security.prepare(action, approval=approval)
+        try:
+            result = await self.operations.execute(phase, state)
+        except Exception as exc:
+            self.security.complete(action, result="failure", failure=str(exc))
+            raise
+        self.security.complete(action)
         return result
 
     @staticmethod
@@ -275,9 +255,7 @@ class EngineeringWorkflow:
         )
         evidence = tuple(item for event in events for item in event.evidence)
         tests = tuple(
-            event.detail
-            for event in events
-            if event.phase is WorkflowPhase.TEST and event.detail
+            event.detail for event in events if event.phase is WorkflowPhase.TEST and event.detail
         )
         failures = tuple(item for event in events for item in event.failures)
         corrections = tuple(item for event in events for item in event.corrections)
