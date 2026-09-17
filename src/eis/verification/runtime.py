@@ -90,29 +90,19 @@ class VerificationEngine:
             stages.extend(current)
             failed = next((stage for stage in current if not stage.passed), None)
             if failed is None:
-                if self.regression is not None:
-                    regression = await self.regression.verify_regression(request)
-                    stages.append(regression)
-                    if not regression.passed:
-                        failed = regression
-                    else:
-                        return VerificationReport(
-                            "verified",
-                            tuple(stages),
-                            tuple(corrections),
-                            tuple(failures),
-                            attempts,
-                            summary="All verification stages passed, including regression protection.",
-                        )
-                else:
-                    return VerificationReport(
-                        "verified",
-                        tuple(stages),
-                        tuple(corrections),
-                        tuple(failures),
-                        attempts,
-                        summary="All independent verification stages passed.",
-                    )
+                return VerificationReport(
+                    "verified",
+                    tuple(stages),
+                    tuple(corrections),
+                    tuple(failures),
+                    attempts,
+                    summary=(
+                        "All independent verification stages passed, "
+                        "including regression protection."
+                        if self.regression is not None
+                        else "All independent verification stages passed."
+                    ),
+                )
 
             failures.append(failed.detail or "verification stage failed")
             if attempts >= self.limits.max_correction_attempts:
@@ -125,7 +115,8 @@ class VerificationEngine:
                 )
 
             attempts += 1
-            analysis = await (self.root_cause or DefaultRootCauseAnalyzer()).analyze(failed)
+            analyzer = self.root_cause or DefaultRootCauseAnalyzer()
+            analysis = await analyzer.analyze(failed)
             changes = await self.correction.correct(request, analysis)
             validation = await self._validate_correction(request)
             record = CorrectionRecord(
@@ -135,7 +126,9 @@ class VerificationEngine:
                 analysis.suspected_cause,
                 changes,
                 validation,
-                analysis.evidence[0] if analysis.evidence else "uncertainty remains until full verification",
+                analysis.evidence[0]
+                if analysis.evidence
+                else "uncertainty remains until full verification",
                 analysis,
             )
             corrections.append(record)
@@ -149,7 +142,7 @@ class VerificationEngine:
                 )
 
     async def _run_stages(self, request: VerificationRequest) -> tuple[StageResult, ...]:
-        results = []
+        results: list[StageResult] = []
         for stage in VerificationStage:
             if stage is VerificationStage.REGRESSION and self.regression is not None:
                 result = await self.regression.verify_regression(request)
