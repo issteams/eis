@@ -31,7 +31,10 @@ def test_cache_single_flight() -> None:
         )
         assert values == ["value"] * 8
         assert calls == 1
-        assert cache.stats().hits >= 1
+        assert cache.stats().misses == 8
+        assert cache.stats().stores == 1
+        assert await cache.get("same") == "value"
+        assert cache.stats().hits == 1
 
     asyncio.run(scenario())
 
@@ -41,9 +44,7 @@ def test_context_budget_keeps_high_score_evidence() -> None:
         "source", SourceKind.KNOWLEDGE, "knowledge://1", authority=1.0
     )
     items = [ContextItem.create("high " + "x" * 100, provenance, relevance=1.0)] + [
-        ContextItem.create(
-            f"low-{i} " + "x" * 100, provenance, relevance=0.1
-        )
+        ContextItem.create(f"low-{i} " + "x" * 100, provenance, relevance=0.1)
         for i in range(20)
     ]
     result = optimize_context(
