@@ -228,7 +228,7 @@ HIGH_RISK_ACTIONS = frozenset(
 
 @dataclass(slots=True)
 class SecurityGateway:
-    """Single action boundary combining authorization, governance, approvals, and audit."""
+    """Single action boundary combining authorization, approvals, governance, and audit."""
 
     authorizer: RoleAuthorizer
     audit: InMemoryAuditSink
@@ -260,12 +260,38 @@ class SecurityGateway:
         )
 
     def check(self, request: ActionRequest) -> AuthorizationDecision:
+        return self.prepare(request)
+
+    def prepare(
+        self, request: ActionRequest, *, approval: Approval | None = None
+    ) -> AuthorizationDecision:
         decision = self.authorize(request)
-        if decision.status is not AuthorizationStatus.ALLOWED:
+        if decision.status is AuthorizationStatus.APPROVAL_REQUIRED:
+            if approval is None or approval.status is not ApprovalStatus.APPROVED:
+                self._audit(request, decision, "approval_required", "valid human approval missing")
+                raise AuthorizationError("valid human approval required")
+        elif decision.status is not AuthorizationStatus.ALLOWED:
             self._audit(request, decision, "denied", decision.reason)
             raise AuthorizationError(decision.reason)
         self.governance.check(request)
-        return decision
+        return AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized")
+
+    def complete(
+        self,
+        request: ActionRequest,
+        *,
+        result: str = "success",
+        failure: str | None = None,
+        actual_cost: float = 0.0,
+        actual_seconds: float = 0.0,
+    ) -> None:
+        self.governance.commit(request, actual_cost, actual_seconds)
+        self._audit(
+            request,
+            AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized"),
+            result,
+            failure,
+        )
 
     def execute_approved(
         self,
@@ -277,21 +303,13 @@ class SecurityGateway:
         actual_cost: float = 0.0,
         actual_seconds: float = 0.0,
     ) -> None:
-        decision = self.authorize(request)
-        if decision.status is AuthorizationStatus.APPROVAL_REQUIRED:
-            if approval is None or approval.status is not ApprovalStatus.APPROVED:
-                self._audit(request, decision, "approval_required", "valid human approval missing")
-                raise AuthorizationError("valid human approval required")
-        elif decision.status is not AuthorizationStatus.ALLOWED:
-            self._audit(request, decision, "denied", decision.reason)
-            raise AuthorizationError(decision.reason)
-        self.governance.check(request)
-        self.governance.commit(request, actual_cost, actual_seconds)
-        self._audit(
+        self.prepare(request, approval=approval)
+        self.complete(
             request,
-            AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized"),
-            result,
-            failure,
+            result=result,
+            failure=failure,
+            actual_cost=actual_cost,
+            actual_seconds=actual_seconds,
         )
 
     def _audit(
