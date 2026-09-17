@@ -52,7 +52,8 @@ class TokenAuthenticator:
 
     def authenticate(self, credential: str) -> Principal | None:
         digest = hashlib.sha256(credential.encode()).hexdigest()
-        return self.credentials.get(digest) and Principal(self.credentials[digest])
+        principal_id = self.credentials.get(digest)
+        return Principal(principal_id) if principal_id is not None else None
 
 
 @dataclass(slots=True)
@@ -71,10 +72,7 @@ class RoleAuthorizer:
         for role_name in principal.roles:
             role = self.roles.get(role_name)
             if role is None:
-                return AuthorizationDecision(
-                    AuthorizationStatus.DENIED,
-                    f"unknown role: {role_name}",
-                )
+                return AuthorizationDecision(AuthorizationStatus.DENIED, f"unknown role: {role_name}")
             permissions.update(role.permissions)
         if request.agent is not None:
             permissions.update(request.agent.permissions)
@@ -129,8 +127,8 @@ class InMemoryAuditSink:
 
 
 _SECRET_PATTERNS = (
-    re.compile(r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\\s*[:=]\\s*[^,\\s]+"),
-    re.compile(r"(?i)bearer\\s+[A-Za-z0-9._~+/=-]+"),
+    re.compile(r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"),
+    re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"),
 )
 
 
