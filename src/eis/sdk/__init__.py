@@ -4,7 +4,7 @@ Import application-facing types from ``eis.sdk``. Runtime modules outside this
 package remain implementation details unless explicitly documented otherwise.
 """
 
-from eis.sdk.api import Agent, EIS, Engineer, Executor, Evaluator, Orchestrator, Tool
+from eis.sdk.api import EIS, Agent, Engineer, Evaluator, Executor, Orchestrator, Tool
 from eis.sdk.client import EISClient
 from eis.sdk.models import (
     AgentResult,
@@ -21,10 +21,10 @@ from eis.sdk.models import (
 )
 
 __all__ = [
+    "EIS",
     "Agent",
     "AgentResult",
     "AuditEntry",
-    "EIS",
     "EISClient",
     "Engineer",
     "EngineeringResult",
