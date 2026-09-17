@@ -11,8 +11,29 @@ from eis.context.models import ContextItem, Query, SourceKind
 
 _STOPWORDS = frozenset(
     [
-        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in",
-        "is", "it", "of", "on", "or", "that", "the", "this", "to", "was", "were", "with",
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "is",
+        "it",
+        "of",
+        "on",
+        "or",
+        "that",
+        "the",
+        "this",
+        "to",
+        "was",
+        "were",
+        "with",
     ]
 )
 
