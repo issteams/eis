@@ -25,12 +25,6 @@ Run the repository checks:
 ruff check .
 ruff format --check .
 mypy src
-a pytest
-```
-
-Use `pytest` rather than the `a pytest` typo above if copying commands manually; the canonical command is:
-
-```bash
 pytest --cov=eis --cov-report=term-missing
 ```
 
