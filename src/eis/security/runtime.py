@@ -66,13 +66,19 @@ class RoleAuthorizer:
 
     def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
         if not request.principal.authenticated:
-            return AuthorizationDecision(AuthorizationStatus.DENIED, "principal is not authenticated")
+            return AuthorizationDecision(
+                AuthorizationStatus.DENIED,
+                "principal is not authenticated",
+            )
         principal = self.principals.get(request.principal.id, request.principal)
         permissions: set[Permission] = set()
         for role_name in principal.roles:
             role = self.roles.get(role_name)
             if role is None:
-                return AuthorizationDecision(AuthorizationStatus.DENIED, f"unknown role: {role_name}")
+                return AuthorizationDecision(
+                    AuthorizationStatus.DENIED,
+                    f"unknown role: {role_name}",
+                )
             permissions.update(role.permissions)
         if request.agent is not None:
             permissions.update(request.agent.permissions)
@@ -83,15 +89,24 @@ class RoleAuthorizer:
         ):
             return AuthorizationDecision(AuthorizationStatus.DENIED, "permission not granted")
         for restriction in self.restrictions:
-            if fnmatch(request.resource, restriction.resource) and request.action not in restriction.allowed_actions:
-                return AuthorizationDecision(AuthorizationStatus.DENIED, "resource restriction denied")
+            if (
+                fnmatch(request.resource, restriction.resource)
+                and request.action not in restriction.allowed_actions
+            ):
+                return AuthorizationDecision(
+                    AuthorizationStatus.DENIED,
+                    "resource restriction denied",
+                )
         return AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized")
 
     def allowed(self, principal: str, action: str, resource: str) -> bool:
         identity = self.principals.get(principal)
         if identity is None:
             return False
-        return self.authorize(AuthorizationRequest(identity, action, resource)).status is AuthorizationStatus.ALLOWED
+        return (
+            self.authorize(AuthorizationRequest(identity, action, resource)).status
+            is AuthorizationStatus.ALLOWED
+        )
 
 
 @dataclass(slots=True)
@@ -127,7 +142,9 @@ class InMemoryAuditSink:
 
 
 _SECRET_PATTERNS = (
-    re.compile(r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"),
+    re.compile(
+        r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"
+    ),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"),
 )
 
@@ -150,6 +167,10 @@ class RedactingProtector:
             return type(value)(self.redact(item) for item in value)
         return value
 
+    def redact_text(self, value: str | None) -> str | None:
+        redacted = self.redact(value)
+        return redacted if isinstance(redacted, str) or redacted is None else str(redacted)
+
 
 @dataclass(slots=True)
 class GovernanceGuard:
@@ -162,12 +183,18 @@ class GovernanceGuard:
 
     def check(self, request: ActionRequest) -> None:
         now = time.monotonic()
-        self._actions = [stamp for stamp in self._actions if now - stamp <= self.limits.window_seconds]
+        self._actions = [
+            stamp for stamp in self._actions if now - stamp <= self.limits.window_seconds
+        ]
         if len(self._actions) >= self.limits.max_actions_per_window:
             raise GovernanceLimitError("action rate limit exceeded")
         if request.estimated_cost < 0 or self._cost + request.estimated_cost > self.limits.max_cost:
             raise GovernanceLimitError("cost limit exceeded")
-        if request.estimated_seconds < 0 or self._execution_seconds + request.estimated_seconds > self.limits.max_execution_seconds:
+        if (
+            request.estimated_seconds < 0
+            or self._execution_seconds + request.estimated_seconds
+            > self.limits.max_execution_seconds
+        ):
             raise GovernanceLimitError("execution limit exceeded")
 
     def commit(self, request: ActionRequest, actual_cost: float, actual_seconds: float) -> None:
@@ -202,7 +229,10 @@ class SecurityGateway:
     protector: RedactingProtector = field(default_factory=RedactingProtector)
 
     def authorize(self, request: ActionRequest) -> AuthorizationDecision:
-        if request.action in HIGH_RISK_ACTIONS or request.risk_level in (RiskLevel.HIGH, RiskLevel.CRITICAL):
+        if request.action in HIGH_RISK_ACTIONS or request.risk_level in (
+            RiskLevel.HIGH,
+            RiskLevel.CRITICAL,
+        ):
             return AuthorizationDecision(
                 AuthorizationStatus.APPROVAL_REQUIRED,
                 "human approval required for high-risk action",
@@ -249,7 +279,12 @@ class SecurityGateway:
             raise AuthorizationError(decision.reason)
         self.governance.check(request)
         self.governance.commit(request, actual_cost, actual_seconds)
-        self._audit(request, AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized"), result, failure)
+        self._audit(
+            request,
+            AuthorizationDecision(AuthorizationStatus.ALLOWED, "authorized"),
+            result,
+            failure,
+        )
 
     def _audit(
         self,
@@ -265,12 +300,12 @@ class SecurityGateway:
                 task=str(request.task_id) if request.task_id is not None else None,
                 action=str(request.action),
                 tool=request.tool,
-                target=str(self.protector.redact(request.target)),
+                target=self.protector.redact_text(request.target),
                 timestamp=datetime.now(UTC).isoformat(),
                 result=result,
                 risk_level=request.risk_level,
                 authorization=decision.status,
-                failure=self.protector.redact(failure),
+                failure=self.protector.redact_text(failure),
                 metadata={"resource": self.protector.redact(request.resource)},
             )
         )
