@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from eis.security.models import (
     ActionRequest,
@@ -39,9 +38,7 @@ class EngineeringWorkflow:
     security: SecurityGateway
     principal: Principal
     store: WorkflowStore
-    approval_phases: frozenset[WorkflowPhase] = frozenset(
-        {WorkflowPhase.IMPLEMENT}
-    )
+    approval_phases: frozenset[WorkflowPhase] = frozenset({WorkflowPhase.IMPLEMENT})
     _approval_cache: dict[str, Approval] = field(default_factory=dict)
 
     def start(self, request: WorkflowRequest) -> WorkflowState:
@@ -53,9 +50,18 @@ class EngineeringWorkflow:
         state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"unknown workflow: {workflow_id}")
+        if state.status in {
+            WorkflowStatus.WAITING_APPROVAL,
+            WorkflowStatus.COMPLETED,
+            WorkflowStatus.FAILED,
+            WorkflowStatus.ESCALATED,
+        }:
+            return self._report(state)
         return await self._run(state)
 
-    async def resume(self, workflow_id: str, approval: Approval | None = None) -> WorkflowReport:
+    async def resume(
+        self, workflow_id: str, approval: Approval | None = None
+    ) -> WorkflowReport:
         state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"unknown workflow: {workflow_id}")
@@ -70,7 +76,15 @@ class EngineeringWorkflow:
             request=state.request,
             status=WorkflowStatus.RUNNING,
             phase_index=state.phase_index,
-            events=state.events,
+            events=state.events
+            + (
+                WorkflowEvent(
+                    phase=WorkflowPhase.APPROVAL,
+                    status="completed",
+                    detail=approval.reason or "human approval granted",
+                    evidence=(f"approved-by:{approval.approver}",),
+                ),
+            ),
             approval=None,
             data=state.data,
             escalation_reason=None,
@@ -196,9 +210,10 @@ class EngineeringWorkflow:
     async def _execute(
         self, state: WorkflowState, phase: WorkflowPhase, approval: Approval | None
     ) -> WorkflowEvent:
+        is_write = phase in {WorkflowPhase.IMPLEMENT, WorkflowPhase.CORRECT}
         action = ActionRequest(
             actor=self.principal,
-            action="write" if phase in {WorkflowPhase.IMPLEMENT, WorkflowPhase.CORRECT} else "read",
+            action="write" if is_write else "read",
             resource=state.request.repository,
             risk_level=RiskLevel.HIGH if phase in self.approval_phases else RiskLevel.LOW,
             tool=f"workflow.{phase.value}",
@@ -231,7 +246,11 @@ class EngineeringWorkflow:
     @staticmethod
     def _report(state: WorkflowState) -> WorkflowReport:
         events = state.events
-        completed = tuple(event.detail for event in events if event.status == "completed" and event.detail)
+        completed = tuple(
+            event.detail
+            for event in events
+            if event.status == "completed" and event.detail
+        )
         evidence = tuple(item for event in events for item in event.evidence)
         tests = tuple(
             event.detail
@@ -242,8 +261,10 @@ class EngineeringWorkflow:
         corrections = tuple(item for event in events for item in event.corrections)
         risks = tuple(item for event in events for item in event.risks)
         uncertainty = tuple(item for event in events for item in event.uncertainty)
-        decisions = (
-            (state.approval.reason,) if state.approval is not None else ()
+        decisions = tuple(
+            event.detail
+            for event in events
+            if event.phase is WorkflowPhase.APPROVAL and event.status == "completed"
         )
         return WorkflowReport(
             request=state.request,
