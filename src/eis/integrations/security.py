@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass
-from typing import Awaitable, Callable, TypeVar
+from typing import Awaitable, Callable, TypeVar, cast
 
 from eis.security.models import ActionRequest, Approval, Principal, RiskLevel
 from eis.security.runtime import SecurityGateway
@@ -36,7 +36,7 @@ class IntegrationSecurity:
             self.gateway.complete(request, result="failed", failure=str(exc))
             raise
         self.gateway.complete(request)
-        return result
+        return cast(T, result)
 
     async def write(
         self,
@@ -62,7 +62,7 @@ class IntegrationSecurity:
             self.gateway.complete(request, result="failed", failure=str(exc))
             raise
         self.gateway.complete(request)
-        return result
+        return cast(T, result)
 
 
 __all__ = ["IntegrationSecurity"]
