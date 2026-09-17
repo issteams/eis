@@ -21,9 +21,7 @@ class CaseJudge(Protocol):
 class EvaluationRunnerProtocol(Protocol):
     """Execute one evaluation case."""
 
-    def run(
-        self, case: EvaluationCase
-    ) -> EvaluationResponse | Awaitable[EvaluationResponse]: ...
+    def run(self, case: EvaluationCase) -> EvaluationResponse | Awaitable[EvaluationResponse]: ...
 
 
 class EvaluationSuite(Protocol):
