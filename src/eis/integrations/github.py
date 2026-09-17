@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -17,6 +18,7 @@ from eis.integrations.models import (
     RepositorySnapshot,
 )
 from eis.integrations.security import IntegrationSecurity
+from eis.security.models import Approval
 
 
 @dataclass(slots=True)
@@ -27,6 +29,12 @@ class GitHubConnector:
     token: str | None = None
     base_url: str = "https://api.github.com"
     timeout: float = 20.0
+    allowed_hosts: frozenset[str] = field(default_factory=lambda: frozenset({"api.github.com"}))
+
+    def __post_init__(self) -> None:
+        parsed = urlparse(self.base_url)
+        if parsed.scheme != "https" or parsed.hostname not in self.allowed_hosts:
+            raise ValueError("GitHub adapter requires an explicitly allowed HTTPS host")
 
     def _client(self) -> httpx.AsyncClient:
         headers = {"Accept": "application/vnd.github+json"}
@@ -146,7 +154,7 @@ class GitHubConnector:
         title: str,
         body: str,
         *,
-        approval=None,
+        approval: Approval | None = None,
     ) -> str:
         owner, name = repository.name.split("/", 1)
 
@@ -162,6 +170,34 @@ class GitHubConnector:
         return await self.security.write(
             f"github/repos/{repository.name}/issues",
             operation="github create issue",
+            action=create,
+            approval=approval,
+        )
+
+    async def create_pull_request(
+        self,
+        repository: RepositoryRef,
+        title: str,
+        head: str,
+        base: str,
+        body: str = "",
+        *,
+        approval: Approval | None = None,
+    ) -> str:
+        owner, name = repository.name.split("/", 1)
+
+        async def create() -> str:
+            async with self._client() as client:
+                response = await client.post(
+                    f"/repos/{owner}/{name}/pulls",
+                    json={"title": title, "head": head, "base": base, "body": body},
+                )
+                response.raise_for_status()
+                return str(response.json()["html_url"])
+
+        return await self.security.write(
+            f"github/repos/{repository.name}/pulls",
+            operation="github create pull request",
             action=create,
             approval=approval,
         )
