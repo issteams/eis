@@ -14,7 +14,7 @@ from eis.integrations import (
     RepositoryRef,
 )
 from eis.integrations.github import GitHubConnector
-from eis.integrations.models import CIRun, Change, Document, RepositorySnapshot
+from eis.integrations.models import Change, CIRun, Document, RepositorySnapshot
 from eis.security.models import Approval, ApprovalStatus, Permission, Principal, Role
 from eis.security.runtime import InMemoryAuditSink, RoleAuthorizer, SecurityGateway
 
@@ -246,7 +246,9 @@ async def test_integration_project_context_and_verification(security: Integratio
 
 
 @pytest.mark.anyio
-async def test_integration_requires_configured_optional_adapters(security: IntegrationSecurity) -> None:
+async def test_integration_requires_configured_optional_adapters(
+    security: IntegrationSecurity,
+) -> None:
     repository = RepositoryRef("demo", "/tmp/demo", provider=IntegrationKind.LOCAL_REPOSITORY)
     integration = EchowavsIntegration(object())
 
