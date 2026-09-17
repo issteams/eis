@@ -28,13 +28,13 @@ class MetricsRegistry:
     """In-process counters, gauges and histograms with Prometheus text output."""
 
     def __init__(self) -> None:
-        self._counters: defaultdict[
-            tuple[str, tuple[tuple[str, str], ...]], float
-        ] = defaultdict(float)
+        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(
+            float
+        )
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
-        self._histograms: defaultdict[
-            tuple[str, tuple[tuple[str, str], ...]], list[float]
-        ] = defaultdict(list)
+        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = (
+            defaultdict(list)
+        )
 
     @staticmethod
     def _key(name: str, labels: dict[str, str]) -> tuple[str, tuple[tuple[str, str], ...]]:
@@ -81,9 +81,7 @@ class StructuredLogger:
 
     def __init__(self, name: str = "eis", *, json_output: bool = True) -> None:
         renderer = (
-            structlog.processors.JSONRenderer()
-            if json_output
-            else structlog.dev.ConsoleRenderer()
+            structlog.processors.JSONRenderer() if json_output else structlog.dev.ConsoleRenderer()
         )
         structlog.configure(
             processors=[
@@ -190,17 +188,13 @@ class Observability:
         )
 
     def record_tool(self, tool: str, status: str, latency_seconds: float) -> None:
-        self.metrics.increment(
-            "eis_tool_executions_total", value=1.0, tool=tool, status=status
-        )
+        self.metrics.increment("eis_tool_executions_total", value=1.0, tool=tool, status=status)
         self.metrics.observe("eis_tool_latency_seconds", latency_seconds, tool=tool)
         if status not in {"success", "completed"}:
             self.metrics.increment("eis_tool_failures_total", value=1.0, tool=tool, status=status)
 
     def record_verification(self, stage: str, status: str, latency_seconds: float) -> None:
-        self.metrics.increment(
-            "eis_verifications_total", value=1.0, stage=stage, status=status
-        )
+        self.metrics.increment("eis_verifications_total", value=1.0, stage=stage, status=status)
         self.metrics.observe("eis_verification_latency_seconds", latency_seconds, stage=stage)
         if status not in {"passed", "success"}:
             self.metrics.increment(
