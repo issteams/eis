@@ -1,6 +1,12 @@
 import asyncio
 
-from eis.specialized import AgentAssignment, AgentKind, AgentOrchestrator, DefaultAgentFactory, SPECS
+from eis.specialized import (
+    SPECS,
+    AgentAssignment,
+    AgentKind,
+    AgentOrchestrator,
+    DefaultAgentFactory,
+)
 
 
 class FixtureRunner:
