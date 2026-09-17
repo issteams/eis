@@ -97,7 +97,7 @@ def test_security_gateway_requires_approval_for_destructive_action() -> None:
 
 
 def test_security_gateway_redacts_secrets_in_audit() -> None:
-    principal = Principal("operator")
+    principal = Principal("operator", roles=frozenset({"operator"}))
     authorizer = RoleAuthorizer(
         roles={"operator": Role("operator", frozenset({Permission("read", "repo/*")}))},
         principals={principal.id: principal},
