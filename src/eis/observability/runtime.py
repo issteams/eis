@@ -28,13 +28,11 @@ class MetricsRegistry:
     """In-process counters, gauges and histograms with Prometheus text output."""
 
     def __init__(self) -> None:
-        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(
-            float
-        )
+        self._counters: defaultdict[tuple[str, tuple[tuple[str, str], ...]], float] = defaultdict(float)
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
-        self._histograms: defaultdict[
-            tuple[str, tuple[tuple[str, str], ...]], list[float]
-        ] = defaultdict(list)
+        self._histograms: defaultdict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = defaultdict(
+            list
+        )
 
     @staticmethod
     def _key(name: str, labels: dict[str, str]) -> tuple[str, tuple[tuple[str, str], ...]]:
@@ -133,13 +131,13 @@ class Tracer:
             )
 
 
+@dataclass(slots=True)
 class Observability:
     """Shared instrumentation facade used by agents, tools, models and workers."""
 
-    def __init__(self, *, logger: StructuredLogger | None = None) -> None:
-        self.metrics = MetricsRegistry()
-        self.tracer = Tracer()
-        self.logger = logger or StructuredLogger()
+    logger: StructuredLogger = field(default_factory=StructuredLogger)
+    metrics: MetricsRegistry = field(default_factory=MetricsRegistry)
+    tracer: Tracer = field(default_factory=Tracer)
 
     @contextmanager
     def measure(self, operation: str, **labels: str) -> Iterator[TraceContext]:
@@ -148,7 +146,9 @@ class Observability:
             try:
                 yield context
             except Exception:
-                self.metrics.increment("eis_failures_total", operation=operation, **labels)
+                self.metrics.increment(
+                    "eis_failures_total", value=1.0, operation=operation, **labels
+                )
                 raise
             finally:
                 self.metrics.observe(
@@ -160,7 +160,7 @@ class Observability:
 
     def record_model_usage(self, usage: ModelUsageMetric) -> None:
         labels = {"provider": usage.provider, "model": usage.model}
-        self.metrics.increment("eis_model_requests_total", **labels)
+        self.metrics.increment("eis_model_requests_total", value=1.0, **labels)
         self.metrics.increment("eis_model_input_tokens_total", value=usage.input_tokens, **labels)
         self.metrics.increment("eis_model_output_tokens_total", value=usage.output_tokens, **labels)
         self.metrics.increment("eis_model_tokens_total", value=usage.total_tokens, **labels)
@@ -173,10 +173,15 @@ class Observability:
                 **labels,
             )
         if not usage.success:
-            self.metrics.increment("eis_model_failures_total", **labels)
+            self.metrics.increment("eis_model_failures_total", value=1.0, **labels)
 
     def record_task(self, metric: TaskMetric) -> None:
-        self.metrics.increment("eis_tasks_total", task_type=metric.task_type, status=metric.status)
+        self.metrics.increment(
+            "eis_tasks_total",
+            value=1.0,
+            task_type=metric.task_type,
+            status=metric.status,
+        )
         self.metrics.observe(
             "eis_task_latency_seconds", metric.latency_seconds, task_type=metric.task_type
         )
@@ -185,16 +190,22 @@ class Observability:
         )
 
     def record_tool(self, tool: str, status: str, latency_seconds: float) -> None:
-        self.metrics.increment("eis_tool_executions_total", tool=tool, status=status)
+        self.metrics.increment(
+            "eis_tool_executions_total", value=1.0, tool=tool, status=status
+        )
         self.metrics.observe("eis_tool_latency_seconds", latency_seconds, tool=tool)
         if status not in {"success", "completed"}:
-            self.metrics.increment("eis_tool_failures_total", tool=tool, status=status)
+            self.metrics.increment("eis_tool_failures_total", value=1.0, tool=tool, status=status)
 
     def record_verification(self, stage: str, status: str, latency_seconds: float) -> None:
-        self.metrics.increment("eis_verifications_total", stage=stage, status=status)
+        self.metrics.increment(
+            "eis_verifications_total", value=1.0, stage=stage, status=status
+        )
         self.metrics.observe("eis_verification_latency_seconds", latency_seconds, stage=stage)
         if status not in {"passed", "success"}:
-            self.metrics.increment("eis_verification_failures_total", stage=stage, status=status)
+            self.metrics.increment(
+                "eis_verification_failures_total", value=1.0, stage=stage, status=status
+            )
 
     def health_snapshot(self) -> dict[str, Any]:
         return {
