@@ -7,7 +7,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
-
 T = TypeVar("T")
 
 
@@ -18,7 +17,9 @@ class RetryPolicy:
     max_backoff_seconds: float = 10.0
 
     def delay(self, attempt: int) -> float:
-        return min(self.max_backoff_seconds, self.backoff_seconds * (2**attempt))
+        return float(
+            min(self.max_backoff_seconds, self.backoff_seconds * (2**attempt))
+        )
 
 
 async def retry_async(
