@@ -23,8 +23,8 @@ from eis.security.models import (
     Permission,
     Principal,
     ResourceRestriction,
-    Role,
     RiskLevel,
+    Role,
 )
 
 
@@ -76,8 +76,6 @@ class RoleAuthorizer:
                     f"unknown role: {role_name}",
                 )
             permissions.update(role.permissions)
-        if request.agent is not None:
-            permissions.update(request.agent.permissions)
         if not any(
             permission.action == request.action
             and fnmatch(request.resource, permission.resource)
@@ -112,7 +110,9 @@ class InMemoryApprovalGate:
         self.approvals[str(request.id)] = approval
         return approval
 
-    def resolve(self, approval: Approval, *, approver: str, approved: bool, reason: str) -> Approval:
+    def resolve(
+        self, approval: Approval, *, approver: str, approved: bool, reason: str
+    ) -> Approval:
         if not approver.strip() or not reason.strip():
             raise AuthorizationError("approval requires an identified approver and reason")
         updated = Approval(
@@ -136,16 +136,19 @@ class InMemoryAuditSink:
 
 
 _SECRET_PATTERNS = (
+    re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"),
     re.compile(
         r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^,\s]+"
     ),
-    re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"),
+)
+_SENSITIVE_KEYS = frozenset(
+    {"password", "passwd", "secret", "token", "api_key", "api-key", "authorization"}
 )
 
 
 @dataclass(frozen=True, slots=True)
 class RedactingProtector:
-    """Redact common credential-bearing strings before audit or telemetry storage."""
+    """Redact common credential-bearing values before audit or telemetry storage."""
 
     replacement: str = "[REDACTED]"
 
@@ -156,7 +159,12 @@ class RedactingProtector:
                 result = pattern.sub(self.replacement, result)
             return result
         if isinstance(value, dict):
-            return {str(key): self.redact(item) for key, item in value.items()}
+            return {
+                str(key): self.replacement
+                if self._is_sensitive_key(str(key))
+                else self.redact(item)
+                for key, item in value.items()
+            }
         if isinstance(value, list):
             return [self.redact(item) for item in value]
         if isinstance(value, tuple):
@@ -166,6 +174,11 @@ class RedactingProtector:
     def redact_text(self, value: str | None) -> str | None:
         redacted = self.redact(value)
         return redacted if isinstance(redacted, str) or redacted is None else str(redacted)
+
+    @staticmethod
+    def _is_sensitive_key(key: str) -> bool:
+        normalized = key.casefold().replace("-", "_")
+        return normalized in {item.replace("-", "_") for item in _SENSITIVE_KEYS}
 
 
 @dataclass(slots=True)
