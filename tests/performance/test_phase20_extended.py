@@ -13,7 +13,7 @@ from eis.performance.context import ContextBudget
 from eis.performance.execution import RetryConfig, batch_gather, retry_optimized
 from eis.performance.profiler import PerformanceProfiler, process_memory_mib
 from eis.performance.routing import ModelRoute, ModelRouter, RoutingPolicy
-from eis.performance.scheduler import Priority, TaskScheduler
+from eis.performance.scheduler import TaskScheduler
 
 
 class FakeModel:
@@ -66,7 +66,12 @@ def test_router_explicit_model_and_cost() -> None:
     slow.metadata = ModelMetadata("test", "slow")
     router = ModelRouter(
         [
-            ModelRoute("fast", fast, price_per_million_input=1.0, price_per_million_output=2.0),
+            ModelRoute(
+                "fast",
+                fast,
+                price_per_million_input=1.0,
+                price_per_million_output=2.0,
+            ),
             ModelRoute("slow", slow),
         ],
         RoutingPolicy(default_route="fast"),
@@ -75,6 +80,7 @@ def test_router_explicit_model_and_cost() -> None:
     assert selected.name == "slow"
     assert request.model == "slow"
     assert router.estimate_cost(router.route(request), 1_000_000, 2_000_000) == 0.0
+    assert router.estimate_cost(router.route(GenerationRequest(prompt="x")), 1_000_000, 2_000_000) == 5.0
     assert len(router.metadata()) == 2
 
 
