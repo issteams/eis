@@ -43,6 +43,7 @@ src/eis/
 ├── workflows/     # durable end-to-end engineering workflows
 ├── security/      # authorization and policy boundary
 ├── observability/ # logs, metrics, traces, health and job recovery
+├── performance/   # Phase 20 caching, routing, context and scheduling
 ├── adapters/      # replaceable infrastructure providers
 ├── integrations/  # controlled Echowavs system adapters
 └── sdk/           # public SDK facade
@@ -57,6 +58,30 @@ Phase 19 provides a durable workflow boundary for high-level engineering request
 Workflows are persisted in SQLite and can safely stop at human approval checkpoints, survive process interruption, resume from the stored phase, and escalate when autonomous continuation is unsafe. External capabilities are injected through operation protocols; EIS does not invent or tightly couple unavailable integrations.
 
 See [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) for the workflow and governance model.
+
+## Phase 20 — Performance, Scalability and Cost Optimization
+
+Phase 20 profiles and optimizes EIS without weakening verification or evidence quality. It adds:
+
+- bounded async response caching with single-flight protection;
+- evidence-aware context compaction with provenance preservation;
+- deterministic model routing with explicit-model precedence;
+- bounded priority scheduling and concurrency controls;
+- bounded batching for independent work;
+- transient-only retry optimization with capped backoff and jitter;
+- top-k retrieval optimization and parallel context retrievers;
+- retrieval, database, memory, model, agent, tool and cost metrics;
+- reproducible performance benchmarks and scalability documentation.
+
+See [`docs/architecture/performance.md`](docs/architecture/performance.md).
+
+Run the local benchmark suite with:
+
+```bash
+python -m benchmarks.phase20
+```
+
+The benchmark writes `benchmark-results/phase20.json`. Its model measurement is intentionally local and deterministic; real provider latency and cost must be read from live EIS observability data.
 
 ## Production operations
 
@@ -84,6 +109,7 @@ CI runs linting, formatting checks, strict type checking and tests on Python 3.1
 
 - [`docs/architecture.md`](docs/architecture.md) — architecture and domain boundaries.
 - [`docs/architecture/production.md`](docs/architecture/production.md) — production infrastructure and observability.
+- [`docs/architecture/performance.md`](docs/architecture/performance.md) — Phase 20 performance, scalability and cost controls.
 - [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) — Phase 19 workflow lifecycle and governance.
 - [`docs/development.md`](docs/development.md) — setup and engineering rules.
 - [`docs/decisions/0001-foundation-boundaries.md`](docs/decisions/0001-foundation-boundaries.md) — initial architecture decision record.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import heapq
 import re
 from collections.abc import Iterable
 from math import exp
@@ -68,11 +69,14 @@ class KeywordRetriever:
         *,
         limit: int = 20,
     ) -> list[ContextItem]:
-        scored = [self._with_score(item, self.score(query, item)) for item in items]
-        return sorted(
+        if limit < 1:
+            return []
+        scored = (self._with_score(item, self.score(query, item)) for item in items)
+        return heapq.nlargest(
+            limit,
             scored,
-            key=lambda item: (-item.score, -item.provenance.authority, str(item.id)),
-        )[:limit]
+            key=lambda item: (item.score, item.provenance.authority, str(item.id)),
+        )
 
     @staticmethod
     def _with_score(item: ContextItem, relevance: float) -> ContextItem:
