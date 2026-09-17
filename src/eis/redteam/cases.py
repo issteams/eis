@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from eis.redteam.models import AttackCategory, AttackCase, AttackSeverity
+from eis.redteam.models import AttackCase, AttackCategory, AttackSeverity
 
 
 CASES: tuple[AttackCase, ...] = (
