@@ -97,6 +97,8 @@ class VerificationReport:
 
     @property
     def verified(self) -> bool:
-        return self.status == "verified" and not self.escalated and all(
-            stage.passed for stage in self.stages
+        return (
+            self.status == "verified"
+            and not self.escalated
+            and all(stage.passed for stage in self.stages)
         )
