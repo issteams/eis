@@ -5,8 +5,10 @@ from __future__ import annotations
 import sqlite3
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Iterator
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,10 +35,14 @@ class JobStore:
                 "lease_until REAL, error TEXT)"
             )
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         db = sqlite3.connect(self.path, timeout=10.0)
         db.row_factory = sqlite3.Row
-        return db
+        try:
+            yield db
+        finally:
+            db.close()
 
     def enqueue(self, kind: str, payload: str) -> Job:
         job = Job(uuid.uuid4().hex, kind, payload, "queued", 0, None)
