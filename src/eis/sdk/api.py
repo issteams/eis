@@ -1,13 +1,13 @@
 """Stable, typed public facade for EIS.
 
 Only this module and :mod:`eis.sdk.models` are intended as the supported SDK
-surface.  Runtime modules remain implementation details.
+surface. Runtime modules remain implementation details.
 """
 
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 from uuid import UUID
@@ -64,7 +64,7 @@ class EIS:
     """Primary entry point for the EIS Python SDK.
 
     The facade owns user-facing state and delegates advanced behavior to
-    explicitly supplied adapters.  No provider, database, model, or runtime
+    explicitly supplied adapters. No provider, database, model, or runtime
     implementation is selected implicitly.
     """
 
@@ -77,7 +77,13 @@ class EIS:
         self._memory = _Memory()
         self._audit: list[AuditEntry] = []
 
-    def register_product(self, name: str, purpose: str, *, metadata: dict[str, Any] | None = None) -> Product:
+    def register_product(
+        self,
+        name: str,
+        purpose: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+    ) -> Product:
         """Register a product and return its stable public representation."""
         product = Product(name, purpose, metadata=metadata or {})
         self._products[product.id] = product
@@ -115,7 +121,10 @@ class EIS:
             item
             for item in self._knowledge.values()
             if not terms
-            or all(term in f"{item.title or ''} {item.content} {item.source}".casefold() for term in terms)
+            or all(
+                term in f"{item.title or ''} {item.content} {item.source}".casefold()
+                for term in terms
+            )
         ]
         return tuple(matches[:limit])
 
@@ -186,7 +195,11 @@ class EIS:
         self._record_audit("idea.evaluate", "success", target=subject)
         return result
 
-    async def execute_engineering(self, task: Task, engineer: Engineer | EngineeringHandler) -> EngineeringResult:
+    async def execute_engineering(
+        self,
+        task: Task,
+        engineer: Engineer | EngineeringHandler,
+    ) -> EngineeringResult:
         """Execute an engineering task through an explicit engineering adapter."""
         self._record_audit("engineering.execute", "started", task_id=str(task.id))
         try:
@@ -198,7 +211,9 @@ class EIS:
             self._record_audit("engineering.execute", "success", task_id=str(task.id))
             return EngineeringResult(task, status, summary, raw=result)
         except Exception as exc:
-            self._record_audit("engineering.execute", "failed", task_id=str(task.id), failure=str(exc))
+            self._record_audit(
+                "engineering.execute", "failed", task_id=str(task.id), failure=str(exc)
+            )
             return EngineeringResult(task, "failed", str(exc), raw=None)
 
     def audit_history(self, *, limit: int | None = None) -> tuple[AuditEntry, ...]:
@@ -219,7 +234,15 @@ class EIS:
         from datetime import UTC, datetime
 
         self._audit.append(
-            AuditEntry(action, result, datetime.now(UTC).isoformat(), task_id, agent, target, failure)
+            AuditEntry(
+                action,
+                result,
+                datetime.now(UTC).isoformat(),
+                task_id,
+                agent,
+                target,
+                failure,
+            )
         )
 
 
