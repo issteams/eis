@@ -49,13 +49,9 @@ def make_gateway() -> SecurityGateway:
 
 def test_rbac_allows_granted_resource_and_denies_unknown() -> None:
     gateway = make_gateway()
-    request = ActionRequest(
-        Principal("human", frozenset({"developer"})), "write", "repo:craftiq"
-    )
+    request = ActionRequest(Principal("human", frozenset({"developer"})), "write", "repo:craftiq")
     assert gateway.authorize(request).status is AuthorizationStatus.ALLOWED
-    unknown = ActionRequest(
-        Principal("unknown", frozenset({"missing"})), "write", "repo:craftiq"
-    )
+    unknown = ActionRequest(Principal("unknown", frozenset({"missing"})), "write", "repo:craftiq")
     assert gateway.authorize(unknown).status is AuthorizationStatus.DENIED
 
 
