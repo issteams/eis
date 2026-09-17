@@ -7,9 +7,10 @@ from eis.specialized.models import (
     AgentSpec,
     CoordinationResult,
 )
-from eis.specialized.runtime import AgentOrchestrator, DefaultAgentFactory, SPECS
+from eis.specialized.runtime import SPECS, AgentOrchestrator, DefaultAgentFactory
 
 __all__ = [
+    "SPECS",
     "AgentAssignment",
     "AgentChallenge",
     "AgentKind",
@@ -17,5 +18,4 @@ __all__ = [
     "AgentSpec",
     "CoordinationResult",
     "DefaultAgentFactory",
-    "SPECS",
 ]
