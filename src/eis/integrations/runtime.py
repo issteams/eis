@@ -12,7 +12,13 @@ from eis.integrations.models import (
     RepositoryRef,
     RepositorySnapshot,
 )
-from eis.integrations.protocols import CIConnector, DocumentationConnector, IssueConnector, RepositoryConnector
+from eis.integrations.protocols import (
+    CIConnector,
+    DocumentationConnector,
+    IssueConnector,
+    RepositoryConnector,
+)
+from eis.security.models import Approval
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,7 +45,9 @@ class EchowavsIntegration:
     async def inspect_repository(self, repository: RepositoryRef) -> RepositorySnapshot:
         return await self.repositories.inspect(repository)
 
-    async def project_context(self, repository: RepositoryRef, *, ci_limit: int = 10) -> ProjectContext:
+    async def project_context(
+        self, repository: RepositoryRef, *, ci_limit: int = 10
+    ) -> ProjectContext:
         snapshot = await self.repositories.inspect(repository)
         documentation = (
             tuple(await self.documentation.ingest(repository))
@@ -47,9 +55,7 @@ class EchowavsIntegration:
             else ()
         )
         changes = tuple(await self.repositories.changes(repository))
-        ci_runs = (
-            tuple(await self.ci.runs(repository, ci_limit)) if self.ci is not None else ()
-        )
+        ci_runs = tuple(await self.ci.runs(repository, ci_limit)) if self.ci is not None else ()
         return ProjectContext(repository, snapshot, documentation, changes, ci_runs)
 
     async def create_engineering_task(
@@ -68,13 +74,11 @@ class EchowavsIntegration:
         title: str,
         body: str,
         *,
-        approval=None,
+        approval: Approval | None = None,
     ) -> str:
         if self.issues is None:
             raise RuntimeError("issue tracking integration is not configured")
-        connector = self.issues
-        method = getattr(connector, "create_issue")
-        return await method(repository, title, body, approval=approval)
+        return await self.issues.create_issue(repository, title, body, approval=approval)
 
     async def verify(self, repository: RepositoryRef, *, limit: int = 10) -> tuple[CIRun, ...]:
         if self.ci is None:
