@@ -19,7 +19,9 @@ class ContextBudget:
             raise ValueError("invalid context budget")
 
 
-def optimize_context(items: list[ContextItem], budget: ContextBudget | None = None) -> list[ContextItem]:
+def optimize_context(
+    items: list[ContextItem], budget: ContextBudget | None = None
+) -> list[ContextItem]:
     """Deduplicate and rank evidence, then fit it into a deterministic character budget.
 
     Items are never rewritten, provenance is retained, and selection is score-first. This
