@@ -23,10 +23,10 @@ from eis.security.protocols import (
     AuditSink,
     Authenticator,
     Authorizer,
-    GovernanceGuard as GovernanceGuardProtocol,
     SecretProvider,
     SensitiveDataProtector,
 )
+from eis.security.protocols import GovernanceGuard as GovernanceGuardProtocol
 from eis.security.runtime import (
     HIGH_RISK_ACTIONS,
     AuthorizationError,
