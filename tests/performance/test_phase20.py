@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from eis.context.models import ContextItem, ProvenanceRecord, SourceKind
-from eis.models.interfaces import ModelMetadata
+from eis.models.interfaces import GenerationRequest, ModelMetadata
 from eis.performance.cache import AsyncResponseCache
 from eis.performance.context import ContextBudget, optimize_context
 from eis.performance.execution import batch_gather, retry_optimized
@@ -26,7 +26,9 @@ def test_cache_single_flight() -> None:
             await asyncio.sleep(0.01)
             return "value"
 
-        values = await asyncio.gather(*(cache.get_or_set("same", factory) for _ in range(8)))
+        values = await asyncio.gather(
+            *(cache.get_or_set("same", factory) for _ in range(8))
+        )
         assert values == ["value"] * 8
         assert calls == 1
         assert cache.stats().hits >= 1
@@ -35,11 +37,19 @@ def test_cache_single_flight() -> None:
 
 
 def test_context_budget_keeps_high_score_evidence() -> None:
-    provenance = ProvenanceRecord("source", SourceKind.KNOWLEDGE, "knowledge://1", authority=1.0)
+    provenance = ProvenanceRecord(
+        "source", SourceKind.KNOWLEDGE, "knowledge://1", authority=1.0
+    )
     items = [ContextItem.create("high " + "x" * 100, provenance, relevance=1.0)] + [
-        ContextItem.create(f"low-{i} " + "x" * 100, provenance, relevance=0.1) for i in range(20)
+        ContextItem.create(
+            f"low-{i} " + "x" * 100, provenance, relevance=0.1
+        )
+        for i in range(20)
     ]
-    result = optimize_context(items, ContextBudget(max_items=2, max_characters=500, reserve_characters=50))
+    result = optimize_context(
+        items,
+        ContextBudget(max_items=2, max_characters=500, reserve_characters=50),
+    )
     assert result[0].content.startswith("high")
     assert len(result) <= 2
     assert result[0].provenance.source_id == "source"
@@ -53,9 +63,10 @@ def test_router_respects_task_policy() -> None:
         [ModelRoute("fast", fast), ModelRoute("slow", slow)],
         RoutingPolicy(default_route="fast", task_routes={"verification": "slow"}),
     )
-    from eis.models.interfaces import GenerationRequest
 
-    selected, request = router.prepare(GenerationRequest(prompt="x", metadata={"task_type": "verification"}))
+    selected, request = router.prepare(
+        GenerationRequest(prompt="x", metadata={"task_type": "verification"})
+    )
     assert selected.name == "slow"
     assert request.model == "slow"
 
