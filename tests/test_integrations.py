@@ -92,6 +92,11 @@ def test_github_repository_mapping_is_provider_neutral() -> None:
     assert repository.default_branch == "foundation/eis-architecture"
 
 
+def test_github_connector_rejects_untrusted_host(security: IntegrationSecurity) -> None:
+    with pytest.raises(ValueError):
+        GitHubConnector(security, base_url="https://example.com")
+
+
 @pytest.mark.anyio
 async def test_integration_creates_tasks_without_external_side_effects(
     security: IntegrationSecurity,
