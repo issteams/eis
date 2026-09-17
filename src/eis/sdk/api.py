@@ -78,9 +78,7 @@ class EIS:
         self._tools: dict[str, ToolHandler] = {}
         self._audit: list[AuditEntry] = []
 
-    def register_product(
-        self, product: Product | str, purpose: str | None = None
-    ) -> Product:
+    def register_product(self, product: Product | str, purpose: str | None = None) -> Product:
         """Register a product using either a Product model or name and purpose."""
         if isinstance(product, str):
             if purpose is None:
@@ -122,9 +120,7 @@ class EIS:
                 matches.append(item)
         return tuple(matches)
 
-    def remember(
-        self, content: str, *, metadata: dict[str, Any] | None = None
-    ) -> MemoryItem:
+    def remember(self, content: str, *, metadata: dict[str, Any] | None = None) -> MemoryItem:
         """Store a memory through the stable SDK API."""
         if not content.strip():
             raise ValueError("content must not be empty")
