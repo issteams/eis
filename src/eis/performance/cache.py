@@ -105,6 +105,7 @@ class AsyncResponseCache(Generic[T]):
             return value
         except Exception as exc:
             future.set_exception(exc)
+            future.exception()
             raise
         finally:
             async with self._lock:
