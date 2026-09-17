@@ -1,5 +1,6 @@
 """Environment-driven production configuration."""
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,13 +28,19 @@ class ProductionSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="EIS_", env_file=".env", extra="ignore")
 
-    def validate(self) -> None:
+    @model_validator(mode="after")
+    def validate_settings(self) -> "ProductionSettings":
         if self.request_timeout_seconds <= 0 or self.model_timeout_seconds <= 0:
             raise ValueError("timeouts must be positive")
+        if self.tool_timeout_seconds <= 0 or self.health_timeout_seconds <= 0:
+            raise ValueError("tool and health timeouts must be positive")
         if self.max_retries < 0 or self.max_task_attempts < 1:
             raise ValueError("retry and attempt limits are invalid")
         if self.worker_concurrency < 1 or self.max_concurrent_tasks < 1:
             raise ValueError("worker concurrency must be positive")
+        if self.task_lease_seconds < 1 or self.task_recovery_interval_seconds < 1:
+            raise ValueError("task timing values must be positive")
+        return self
 
 
 __all__ = ["ProductionSettings"]
