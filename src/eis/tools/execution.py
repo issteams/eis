@@ -130,9 +130,14 @@ class SecureExecutor:
         limit = self._limits.max_output_bytes
         stdout = result.stdout.encode()[:limit].decode(errors="replace")
         stderr = result.stderr.encode()[:limit].decode(errors="replace")
+        output = result.output
+        if isinstance(output, str):
+            output = output.encode()[:limit].decode(errors="replace")
+        elif isinstance(output, dict):
+            output = self._protector.redact(output)
         return ToolResult(
             result.status,
-            output=result.output,
+            output=output,
             error=result.error,
             exit_code=result.exit_code,
             stdout=stdout,
