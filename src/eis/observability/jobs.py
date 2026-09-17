@@ -42,8 +42,17 @@ class JobStore:
         job = Job(uuid.uuid4().hex, kind, payload, "queued", 0, None)
         with self._connect() as db:
             db.execute(
-                "INSERT INTO jobs(id,kind,payload,status,attempts,lease_until,error) VALUES(?,?,?,?,?,?,?)",
-                (job.id, job.kind, job.payload, job.status, job.attempts, job.lease_until, job.error),
+                "INSERT INTO jobs(id,kind,payload,status,attempts,lease_until,error) "
+                "VALUES(?,?,?,?,?,?,?)",
+                (
+                    job.id,
+                    job.kind,
+                    job.payload,
+                    job.status,
+                    job.attempts,
+                    job.lease_until,
+                    job.error,
+                ),
             )
         return job
 
@@ -69,11 +78,19 @@ class JobStore:
             updated = db.execute(
                 "UPDATE jobs SET status='running', attempts=attempts+1, lease_until=? "
                 "WHERE id=? AND status='queued'",
-                (lease, row['id']),
+                (lease, row["id"]),
             )
             if updated.rowcount != 1:
                 return None
-            return Job(row['id'], row['kind'], row['payload'], "running", row['attempts'] + 1, lease, row['error'])
+            return Job(
+                row["id"],
+                row["kind"],
+                row["payload"],
+                "running",
+                row["attempts"] + 1,
+                lease,
+                row["error"],
+            )
 
     def complete(self, job_id: str) -> None:
         with self._connect() as db:
@@ -91,7 +108,15 @@ class JobStore:
             row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
         if row is None:
             return None
-        return Job(row['id'], row['kind'], row['payload'], row['status'], row['attempts'], row['lease_until'], row['error'])
+        return Job(
+            row["id"],
+            row["kind"],
+            row["payload"],
+            row["status"],
+            row["attempts"],
+            row["lease_until"],
+            row["error"],
+        )
 
 
 class GracefulShutdown:
