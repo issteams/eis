@@ -3,8 +3,8 @@
 from eis.integrations.github import GitHubConnector
 from eis.integrations.local import LocalRepositoryConnector
 from eis.integrations.models import (
-    CIRun,
     Change,
+    CIRun,
     Document,
     EngineeringRequest,
     IntegrationKind,
