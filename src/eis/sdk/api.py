@@ -37,7 +37,9 @@ class Engineer(Protocol):
 
 
 class Executor(Protocol):
-    def execute(self, action: str, **kwargs: Any) -> ExecutionResult | Awaitable[ExecutionResult]: ...
+    def execute(
+        self, action: str, **kwargs: Any
+    ) -> ExecutionResult | Awaitable[ExecutionResult]: ...
 
 
 class Orchestrator(Protocol):
@@ -50,7 +52,7 @@ class Tool(Protocol):
     def execute(self, **kwargs: Any) -> Any: ...
 
 
-AgentHandler = Callable[[Task], AgentResult | Awaitable[AgentResult]]
+AgentHandler = Callable[[Task], Any]
 EvaluatorHandler = Callable[[str], EvaluationResult | Awaitable[EvaluationResult]]
 EngineeringHandler = Callable[[Task], Any]
 WorkflowHandler = Callable[[Task], Any]
@@ -63,27 +65,27 @@ class _RegisteredAgent:
     handler: AgentHandler
 
 
-@dataclass(slots=True)
-class _Memory:
-    content: str
-    metadata: dict[str, Any]
-
-
 class EIS:
     """Stable public facade for the Echowavs Intelligent System SDK."""
 
     def __init__(self) -> None:
         self._products: dict[str, Product] = {}
         self._knowledge: list[KnowledgeItem] = []
-        self._memories: list[_Memory] = []
+        self._memories: list[MemoryItem] = []
         self._tasks: dict[UUID, Task] = {}
         self._results: dict[UUID, TaskResult] = {}
         self._agents: dict[str, _RegisteredAgent] = {}
         self._tools: dict[str, ToolHandler] = {}
         self._audit: list[AuditEntry] = []
 
-    def register_product(self, product: Product) -> Product:
-        """Register an Echowavs product with EIS."""
+    def register_product(
+        self, product: Product | str, purpose: str | None = None
+    ) -> Product:
+        """Register a product using either a Product model or name and purpose."""
+        if isinstance(product, str):
+            if purpose is None:
+                raise ValueError("purpose is required when registering by name")
+            product = Product(name=product, purpose=purpose)
         self._products[product.name] = product
         self._record_audit("product.register", "success", target=product.name)
         return product
@@ -92,10 +94,20 @@ class EIS:
         """Return registered products."""
         return tuple(self._products.values())
 
-    def add_knowledge(self, item: KnowledgeItem) -> KnowledgeItem:
-        """Add a knowledge item to the SDK knowledge collection."""
+    def add_knowledge(
+        self,
+        item: KnowledgeItem | str,
+        *,
+        source: str | None = None,
+        title: str | None = None,
+    ) -> KnowledgeItem:
+        """Add knowledge using a KnowledgeItem or content with a source."""
+        if isinstance(item, str):
+            if source is None:
+                raise ValueError("source is required when adding knowledge by content")
+            item = KnowledgeItem(content=item, source=source, title=title)
         self._knowledge.append(item)
-        self._record_audit("knowledge.add", "success", target=item.title)
+        self._record_audit("knowledge.add", "success", target=item.title or item.source)
         return item
 
     def search_knowledge(self, query: str) -> tuple[KnowledgeItem, ...]:
@@ -104,28 +116,31 @@ class EIS:
         if not normalized:
             return tuple(self._knowledge)
         return tuple(
-            item
-            for item in self._knowledge
-            if normalized in f"{item.title} {item.content}".lower()
+            item for item in self._knowledge if normalized in f"{item.title or ''} {item.content}".lower()
         )
 
-    def remember(self, content: str, *, metadata: dict[str, Any] | None = None) -> MemoryItem:
+    def remember(
+        self, content: str, *, metadata: dict[str, Any] | None = None
+    ) -> MemoryItem:
         """Store a memory through the stable SDK API."""
         if not content.strip():
             raise ValueError("content must not be empty")
         item = MemoryItem(content=content, metadata=metadata or {})
-        self._memories.append(_Memory(item.content, item.metadata))
+        self._memories.append(item)
         self._record_audit("memory.add", "success")
         return item
 
     def memories(self) -> tuple[MemoryItem, ...]:
         """Return stored memories."""
-        return tuple(MemoryItem(content=m.content, metadata=m.metadata) for m in self._memories)
+        return tuple(self._memories)
 
-    def create_task(self, objective: str, *, input: dict[str, Any] | None = None) -> Task:
-        """Create and retain a task."""
-        task = Task(objective=objective, input=input or {})
+    def create_task(self, objective: str, *, input: Any = None) -> Task:
+        """Create and retain a task with an initial queued result."""
+        if not objective.strip():
+            raise ValueError("objective must not be empty")
+        task = Task(objective=objective, input=input)
         self._tasks[task.id] = task
+        self._results[task.id] = TaskResult(task.id, TaskStatus.QUEUED)
         self._record_audit("task.create", "success", task_id=str(task.id))
         return task
 
@@ -141,17 +156,31 @@ class EIS:
         self._record_audit("agent.register", "success", agent=name)
 
     async def run_agent(self, name: str, task: Task) -> AgentResult:
-        """Run a registered agent and return its typed result."""
+        """Run a registered agent and normalize its output into AgentResult."""
         try:
             result = self._agents[name].handler(task)
         except KeyError as exc:
             raise KeyError(f"unknown agent: {name}") from exc
+        self._results[task.id] = TaskResult(task.id, TaskStatus.RUNNING)
         if inspect.isawaitable(result):
             result = await result
-        if not isinstance(result, AgentResult):
-            raise TypeError("agent handler must return AgentResult")
+        if isinstance(result, AgentResult):
+            agent_result = result
+        else:
+            agent_result = AgentResult(
+                agent=name,
+                task=task,
+                output=result,
+                completed=True,
+            )
+        self._results[task.id] = TaskResult(
+            task.id,
+            TaskStatus.COMPLETED if agent_result.completed else TaskStatus.FAILED,
+            output=agent_result.output,
+            error=agent_result.error,
+        )
         self._record_audit("agent.run", "success", task_id=str(task.id), agent=name)
-        return result
+        return agent_result
 
     def register_tool(self, name: str, handler: ToolHandler) -> None:
         """Register an application-owned tool adapter."""
@@ -160,19 +189,21 @@ class EIS:
         self._tools[name] = handler
         self._record_audit("tool.register", "success", target=name)
 
-    async def execute(self, name: str, **kwargs: Any) -> ExecutionResult:
-        """Execute a registered tool through the public SDK boundary."""
+    async def execute(self, name: str, *args: Any, **kwargs: Any) -> ExecutionResult:
+        """Execute a registered tool and normalize its output into ExecutionResult."""
         try:
             handler = self._tools[name]
         except KeyError as exc:
             raise KeyError(f"unknown tool: {name}") from exc
-        result = handler(**kwargs)
+        result = handler(*args, **kwargs)
         if inspect.isawaitable(result):
             result = await result
-        if not isinstance(result, ExecutionResult):
-            raise TypeError("tool handler must return ExecutionResult")
+        if isinstance(result, ExecutionResult):
+            execution = result
+        else:
+            execution = ExecutionResult(action=name, success=True, output=result)
         self._record_audit("tool.execute", "success", target=name)
-        return result
+        return execution
 
     async def evaluate_idea(
         self,
