@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from typing import Any
 
@@ -34,11 +35,17 @@ class GitHubConnector:
         return httpx.AsyncClient(base_url=self.base_url, headers=headers, timeout=self.timeout)
 
     async def _get(self, path: str, *, resource: str) -> Any:
-        self.security.check_read(resource, operation=f"github GET {path}")
-        async with self._client() as client:
-            response = await client.get(path)
-            response.raise_for_status()
-            return response.json()
+        async def request() -> Any:
+            async with self._client() as client:
+                response = await client.get(path)
+                response.raise_for_status()
+                return response.json()
+
+        return await self.security.read(
+            resource,
+            operation=f"github GET {path}",
+            action=request,
+        )
 
     @staticmethod
     def _repo_from_item(item: dict[str, Any]) -> RepositoryRef:
@@ -113,8 +120,6 @@ class GitHubConnector:
             )
             if encoded.get("encoding") != "base64" or not encoded.get("content"):
                 continue
-            import base64
-
             content = base64.b64decode(encoded["content"]).decode("utf-8", errors="replace")
             documents.append(Document(path, content, f"github:{repository.name}:{path}"))
         return tuple(documents)
