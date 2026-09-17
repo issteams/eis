@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import time
 from collections import OrderedDict
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
@@ -72,7 +73,13 @@ class AsyncResponseCache(Generic[T]):
                 self._entries.popitem(last=False)
                 self._evictions += 1
 
-    async def get_or_set(self, key: str, factory, *, cacheable: bool = True) -> T:
+    async def get_or_set(
+        self,
+        key: str,
+        factory: Callable[[], Awaitable[T]],
+        *,
+        cacheable: bool = True,
+    ) -> T:
         if not cacheable:
             return await factory()
         cached = await self.get(key)
