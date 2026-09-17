@@ -22,6 +22,8 @@
 - `AgentResult`
 - `EvaluationResult`
 - `EngineeringResult`
+- `ExecutionResult`
+- `WorkflowResult`
 - `AuditEntry`
 
 ### Extension contracts
@@ -29,6 +31,9 @@
 - `Agent`
 - `Evaluator`
 - `Engineer`
+- `Tool`
+- `Executor`
+- `Orchestrator`
 
 ## Main operations
 
@@ -43,8 +48,11 @@
 | `task_result()` | Inspect task state |
 | `register_agent()` | Register an application-owned agent |
 | `run_agent()` | Run an agent |
+| `register_tool()` | Register an application-owned tool |
+| `execute()` | Execute a registered tool |
 | `evaluate_idea()` | Evaluate an idea through an explicit evaluator |
 | `execute_engineering()` | Execute engineering through an explicit adapter |
+| `orchestrate()` | Run an explicit workflow adapter |
 | `audit_history()` | Retrieve sanitized audit history |
 
 See `docs/sdk.md` for stability and integration rules.
