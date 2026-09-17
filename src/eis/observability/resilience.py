@@ -5,6 +5,10 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TypeVar
+
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,11 +22,11 @@ class RetryPolicy:
 
 
 async def retry_async(
-    operation: Callable[[], Awaitable[object]],
+    operation: Callable[[], Awaitable[T]],
     *,
     policy: RetryPolicy | None = None,
     retryable: Callable[[Exception], bool] | None = None,
-) -> object:
+) -> T:
     """Retry only bounded, explicitly retryable failures; otherwise fail fast."""
     selected = policy or RetryPolicy()
     should_retry = retryable or (lambda _exc: True)
@@ -50,7 +54,7 @@ class ConcurrencyLimiter:
     def release(self) -> None:
         self._semaphore.release()
 
-    async def __aenter__(self) -> "ConcurrencyLimiter":
+    async def __aenter__(self) -> ConcurrencyLimiter:
         await self.acquire()
         return self
 
