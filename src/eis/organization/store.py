@@ -61,10 +61,12 @@ class InMemoryOrganizationStore:
 
         results: list[OrganizationEntity | ProductProfile] = []
         for item in candidates:
-            if kind is not None and (
-                not isinstance(item, OrganizationEntity) or item.kind != kind
-            ):
-                continue
+            if kind is not None:
+                if isinstance(item, OrganizationEntity):
+                    if item.kind != kind:
+                        continue
+                elif kind != OrganizationEntityKind.PRODUCT:
+                    continue
             searchable = self._search_text(item).casefold()
             if not terms or all(term in searchable for term in terms):
                 results.append(item)
