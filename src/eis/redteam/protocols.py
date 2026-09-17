@@ -14,7 +14,9 @@ RedTeamTarget = Callable[[AttackCase], AttackObservation | Awaitable[AttackObser
 class RedTeamRunner(Protocol):
     """Execute one adversarial case against an EIS target."""
 
-    def run(self, case: AttackCase) -> AttackObservation | Awaitable[AttackObservation]: ...
+    def run(
+        self, case: AttackCase
+    ) -> AttackObservation | Awaitable[AttackObservation]: ...
 
 
 class RedTeamSuite(Protocol):
