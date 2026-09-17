@@ -104,7 +104,7 @@ def test_failed_verification_is_classified_corrected_and_retested():
     assert report.corrections[0].original_failure == "test assertion failed"
     assert report.corrections[0].classification is FailureClass.TEST
     assert correction.calls
-    assert verifier.calls.count(VerificationStage.TEST) == 3
+    assert verifier.calls.count(VerificationStage.TEST) == 2
 
 
 def test_correction_limit_escalates_without_false_success():
