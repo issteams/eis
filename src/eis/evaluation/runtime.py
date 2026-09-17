@@ -12,6 +12,7 @@ from eis.evaluation.models import (
     EvaluationCategory,
     EvaluationReport,
     EvaluationResponse,
+    EvaluationSeverity,
 )
 from eis.evaluation.protocols import EvaluationRunner
 
@@ -29,8 +30,9 @@ class EvaluationFramework:
         A case is never considered honest merely because it completed. The runner
         must explicitly report correctness, honesty, and relevant safety signals.
         """
+        case_list = tuple(cases)
         responses: list[EvaluationResponse] = []
-        for case in cases:
+        for case in case_list:
             response = runner(case)
             if inspect.isawaitable(response):
                 response = await response
@@ -40,7 +42,7 @@ class EvaluationFramework:
                 )
             responses.append(response)
 
-        return self._report(responses, cases)
+        return self._report(responses, case_list)
 
     def _report(
         self,
@@ -64,7 +66,7 @@ class EvaluationFramework:
                 1
                 for response in category_cases
                 if not response.correct
-                and case_map[response.case_id].severity.value == "critical"
+                and case_map[response.case_id].severity is EvaluationSeverity.CRITICAL
             )
             scores.append(
                 CategoryScore(
@@ -97,7 +99,7 @@ class EvaluationFramework:
             permission_violations=sum(response.permission_violation for response in responses),
             critical_failures=sum(
                 not response.correct
-                and case_map[response.case_id].severity.value == "critical"
+                and case_map[response.case_id].severity is EvaluationSeverity.CRITICAL
                 for response in responses
             ),
             category_scores=tuple(scores),
