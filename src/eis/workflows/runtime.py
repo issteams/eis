@@ -59,9 +59,7 @@ class EngineeringWorkflow:
             return self._report(state)
         return await self._run(state)
 
-    async def resume(
-        self, workflow_id: str, approval: Approval | None = None
-    ) -> WorkflowReport:
+    async def resume(self, workflow_id: str, approval: Approval | None = None) -> WorkflowReport:
         state = self.store.load(workflow_id)
         if state is None:
             raise KeyError(f"unknown workflow: {workflow_id}")
@@ -76,8 +74,8 @@ class EngineeringWorkflow:
             request=state.request,
             status=WorkflowStatus.RUNNING,
             phase_index=state.phase_index,
-            events=state.events
-            + (
+            events=(
+                *state.events,
                 WorkflowEvent(
                     phase=WorkflowPhase.APPROVAL,
                     status="completed",
@@ -108,7 +106,7 @@ class EngineeringWorkflow:
             request=state.request,
             status=WorkflowStatus.ESCALATED,
             phase_index=state.phase_index,
-            events=state.events + (event,),
+            events=(*state.events, event),
             approval=state.approval,
             data=state.data,
             escalation_reason=reason,
@@ -134,7 +132,10 @@ class EngineeringWorkflow:
             try:
                 approval = await self._checkpoint(current, phase)
                 if approval is None and phase in self.approval_phases:
-                    return self._report(current)
+                    waiting = self.store.load(str(current.request.id))
+                    if waiting is None:
+                        raise KeyError(f"workflow disappeared during approval checkpoint: {current.request.id}")
+                    return self._report(waiting)
                 event = await self._execute(current, phase, approval)
             except WorkflowEscalation as exc:
                 return await self.escalate(str(current.request.id), str(exc))
@@ -164,9 +165,7 @@ class EngineeringWorkflow:
         self.store.save(completed)
         return self._report(completed)
 
-    async def _checkpoint(
-        self, state: WorkflowState, phase: WorkflowPhase
-    ) -> Approval | None:
+    async def _checkpoint(self, state: WorkflowState, phase: WorkflowPhase) -> Approval | None:
         if phase not in self.approval_phases:
             return None
         cached = self._approval_cache.pop(str(state.request.id), None)
@@ -191,8 +190,8 @@ class EngineeringWorkflow:
             request=state.request,
             status=WorkflowStatus.WAITING_APPROVAL,
             phase_index=state.phase_index,
-            events=state.events
-            + (
+            events=(
+                *state.events,
                 WorkflowEvent(
                     phase=WorkflowPhase.APPROVAL,
                     status="waiting",
@@ -237,7 +236,7 @@ class EngineeringWorkflow:
             request=state.request,
             status=status,
             phase_index=state.phase_index + 1,
-            events=state.events + (event,),
+            events=(*state.events, event),
             approval=None,
             data=state.data,
             escalation_reason=None,
@@ -246,17 +245,9 @@ class EngineeringWorkflow:
     @staticmethod
     def _report(state: WorkflowState) -> WorkflowReport:
         events = state.events
-        completed = tuple(
-            event.detail
-            for event in events
-            if event.status == "completed" and event.detail
-        )
+        completed = tuple(event.detail for event in events if event.status == "completed" and event.detail)
         evidence = tuple(item for event in events for item in event.evidence)
-        tests = tuple(
-            event.detail
-            for event in events
-            if event.phase is WorkflowPhase.TEST and event.detail
-        )
+        tests = tuple(event.detail for event in events if event.phase is WorkflowPhase.TEST and event.detail)
         failures = tuple(item for event in events for item in event.failures)
         corrections = tuple(item for event in events for item in event.corrections)
         risks = tuple(item for event in events for item in event.risks)
