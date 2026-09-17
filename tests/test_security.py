@@ -32,10 +32,12 @@ def make_gateway() -> SecurityGateway:
     principal = Principal("human", frozenset({"developer"}))
     role = Role(
         "developer",
-        frozenset({
-            Permission("read", "repo:*"),
-            Permission("write", "repo:craftiq"),
-        }),
+        frozenset(
+            {
+                Permission("read", "repo:*"),
+                Permission("write", "repo:craftiq"),
+            }
+        ),
     )
     authorizer = RoleAuthorizer(
         roles={"developer": role},
@@ -126,7 +128,7 @@ def test_governance_enforces_rate_and_cost_limits() -> None:
 
 def test_agent_permissions_can_be_added_to_role_permissions() -> None:
     gateway = make_gateway()
-    agent = AgentIdentity(uuid4(), "research", frozenset({Permission("read", "docs:* ")}))
+    agent = AgentIdentity(uuid4(), "research", frozenset({Permission("read", "docs:*")}))
     request = ActionRequest(
         Principal("human", frozenset({"developer"})),
         "read",
