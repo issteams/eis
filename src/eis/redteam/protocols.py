@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Protocol
 
-from eis.redteam.models import AttackCase, AttackObservation
+from eis.redteam.models import (
+    AttackCase,
+    AttackObservation,
+)
 
 
 RedTeamTarget = Callable[[AttackCase], AttackObservation | Awaitable[AttackObservation]]
@@ -14,9 +17,7 @@ RedTeamTarget = Callable[[AttackCase], AttackObservation | Awaitable[AttackObser
 class RedTeamRunner(Protocol):
     """Execute one adversarial case against an EIS target."""
 
-    def run(
-        self, case: AttackCase
-    ) -> AttackObservation | Awaitable[AttackObservation]: ...
+    def run(self, case: AttackCase) -> AttackObservation | Awaitable[AttackObservation]: ...
 
 
 class RedTeamSuite(Protocol):
