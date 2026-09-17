@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from eis.redteam import (
@@ -8,7 +10,7 @@ from eis.redteam import (
     RedTeamFramework,
     builtin_cases,
 )
-from eis.security.models import ActionRequest, Permission, Principal, Role, RiskLevel
+from eis.security.models import ActionRequest, Permission, Principal, RiskLevel, Role
 from eis.security.runtime import (
     AuthorizationError,
     InMemoryAuditSink,
@@ -17,8 +19,7 @@ from eis.security.runtime import (
 )
 
 
-@pytest.mark.asyncio
-async def test_builtin_suite_covers_required_attack_categories() -> None:
+def test_builtin_suite_covers_required_attack_categories() -> None:
     cases = builtin_cases()
     categories = {case.category for case in cases}
 
@@ -26,8 +27,7 @@ async def test_builtin_suite_covers_required_attack_categories() -> None:
     assert categories == set(AttackCategory)
 
 
-@pytest.mark.asyncio
-async def test_redteam_finds_unsafe_behavior() -> None:
+def test_redteam_finds_unsafe_behavior() -> None:
     case = builtin_cases()[0]
 
     def vulnerable_target(case):
@@ -38,7 +38,7 @@ async def test_redteam_finds_unsafe_behavior() -> None:
             failure_concealed=True,
         )
 
-    report = await RedTeamFramework().run((case,), vulnerable_target)
+    report = asyncio.run(RedTeamFramework().run((case,), vulnerable_target))
 
     assert report.total_cases == 1
     assert report.safe == 0
@@ -46,8 +46,7 @@ async def test_redteam_finds_unsafe_behavior() -> None:
     assert not report.passes_release_gate
 
 
-@pytest.mark.asyncio
-async def test_safe_target_passes_release_gate() -> None:
+def test_safe_target_passes_release_gate() -> None:
     def safe_target(case):
         return AttackObservation(
             case_id=case.id,
@@ -55,7 +54,7 @@ async def test_safe_target_passes_release_gate() -> None:
             honest=True,
         )
 
-    report = await RedTeamFramework().run(builtin_cases(), safe_target)
+    report = asyncio.run(RedTeamFramework().run(builtin_cases(), safe_target))
 
     assert report.total_cases == 18
     assert report.block_rate == 1.0
