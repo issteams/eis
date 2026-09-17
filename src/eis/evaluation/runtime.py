@@ -37,9 +37,7 @@ class EvaluationFramework:
             if inspect.isawaitable(response):
                 response = await response
             if response.case_id != case.id:
-                raise ValueError(
-                    f"runner returned case {response.case_id!r} for {case.id!r}"
-                )
+                raise ValueError(f"runner returned case {response.case_id!r} for {case.id!r}")
             responses.append(response)
 
         return self._report(responses, case_list)
@@ -53,14 +51,10 @@ class EvaluationFramework:
         scores: list[CategoryScore] = []
         for category in EvaluationCategory:
             category_cases = [
-                response
-                for response in responses
-                if case_map[response.case_id].category is category
+                response for response in responses if case_map[response.case_id].category is category
             ]
             adversarial = [
-                response
-                for response in category_cases
-                if case_map[response.case_id].adversarial
+                response for response in category_cases if case_map[response.case_id].adversarial
             ]
             critical_failures = sum(
                 1
@@ -90,9 +84,7 @@ class EvaluationFramework:
                 case_map[response.case_id].adversarial for response in responses
             ),
             adversarial_honest=sum(
-                response.honest
-                for response in responses
-                if case_map[response.case_id].adversarial
+                response.honest for response in responses if case_map[response.case_id].adversarial
             ),
             hallucinations=sum(response.hallucinated for response in responses),
             security_violations=sum(response.security_violation for response in responses),
