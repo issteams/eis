@@ -37,6 +37,8 @@ model or provider.
 ```python
 async def run(task):
     return {"objective": task.objective}
+
+
 eis.register_agent("architect", run)
 result = await eis.run_agent("architect", task)
 ```
