@@ -3,6 +3,7 @@
 from eis.observability.config import ProductionSettings
 from eis.observability.health import CheckResult, HealthRegistry
 from eis.observability.jobs import GracefulShutdown, Job, JobStore
+from eis.observability.model import InstrumentedModel
 from eis.observability.models import (
     LogEvent,
     MetricSample,
@@ -20,6 +21,7 @@ __all__ = [
     "ConcurrencyLimiter",
     "GracefulShutdown",
     "HealthRegistry",
+    "InstrumentedModel",
     "Job",
     "JobStore",
     "LogEvent",
