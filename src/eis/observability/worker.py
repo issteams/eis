@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 
 from eis.observability.jobs import GracefulShutdown, Job, JobStore
+from eis.observability.models import TaskMetric
 from eis.observability.runtime import Observability
 
 
@@ -46,7 +47,7 @@ class Worker:
             retry = job.attempts < self.max_attempts
             self.store.fail(job.id, str(exc), retry=retry)
             self.observability.record_task(
-                __import__("eis.observability.models", fromlist=["TaskMetric"]).TaskMetric(
+                TaskMetric(
                     job.kind,
                     "retry" if retry else "failed",
                     asyncio.get_running_loop().time() - started,
@@ -56,8 +57,11 @@ class Worker:
         else:
             self.store.complete(job.id)
             self.observability.record_task(
-                __import__("eis.observability.models", fromlist=["TaskMetric"]).TaskMetric(
-                    job.kind, "completed", asyncio.get_running_loop().time() - started, job.attempts - 1
+                TaskMetric(
+                    job.kind,
+                    "completed",
+                    asyncio.get_running_loop().time() - started,
+                    job.attempts - 1,
                 )
             )
         return True
