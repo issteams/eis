@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from eis.integrations.models import CIRun, Change, Document, RepositoryRef, RepositorySnapshot
+from eis.security.models import Approval
 
 
 class RepositoryConnector(Protocol):
@@ -25,7 +27,12 @@ class CIConnector(Protocol):
 
 class IssueConnector(Protocol):
     async def create_issue(
-        self, repository: RepositoryRef, title: str, body: str
+        self,
+        repository: RepositoryRef,
+        title: str,
+        body: str,
+        *,
+        approval: Approval | None = None,
     ) -> str: ...
 
 
