@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from eis.security.runtime import RedactingProtector
 from eis.tools.models import (
     AuditEvent,
     ExecutionPolicy,
@@ -50,12 +51,14 @@ class SecureExecutor:
         self._audit = audit
         self._policy = policy or SecurityPolicy()
         self._limits = limits or ExecutionLimits()
+        self._protector = RedactingProtector()
 
     async def execute(self, request: ToolRequest) -> ToolResult:
         started = time.monotonic()
         definition: ToolDefinition | None = None
         status = ExecutionStatus.FAILED
         error: str | None = None
+        authorization = "unknown"
         result = ToolResult(ExecutionStatus.FAILED, request_id=request.request_id)
         try:
             definition = self._definition(request.tool)
@@ -64,6 +67,7 @@ class SecureExecutor:
             if missing:
                 raise ToolSecurityError(f"missing permissions: {', '.join(sorted(missing))}")
             self._policy.authorize(request, definition)
+            authorization = "allowed"
             result = await asyncio.wait_for(
                 self._tools[request.tool].execute(request),
                 timeout=definition.timeout_seconds,
@@ -82,6 +86,7 @@ class SecureExecutor:
         except (ToolSecurityError, PermissionError) as exc:
             status = ExecutionStatus.DENIED
             error = str(exc)
+            authorization = "denied"
             return ToolResult(status, error=error, request_id=request.request_id)
         except Exception as exc:
             status = ExecutionStatus.FAILED
@@ -106,9 +111,12 @@ class SecureExecutor:
                     risk_level=definition.risk_level,
                     agent_id=request.agent_id,
                     task_id=request.task_id,
-                    arguments=dict(request.arguments),
-                    error=error if error is not None else result.error,
+                    arguments=self._protector.redact(dict(request.arguments)),
+                    error=self._protector.redact(error if error is not None else result.error),
                     duration_seconds=time.monotonic() - started,
+                    actor=request.actor_id,
+                    target=self._protector.redact(request.target),
+                    authorization=authorization,
                 )
             )
 
