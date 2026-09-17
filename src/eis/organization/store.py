@@ -57,7 +57,7 @@ class InMemoryOrganizationStore:
             product = self._products.get(product_id)
             candidates = [product] if product is not None else []
         else:
-            candidates = list(self._entities.values()) + list(self._products.values())
+            candidates = list(self._products.values()) + list(self._entities.values())
 
         results: list[OrganizationEntity | ProductProfile] = []
         for item in candidates:
