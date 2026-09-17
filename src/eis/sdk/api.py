@@ -262,7 +262,12 @@ class EIS:
             )
             return EngineeringResult(task, "failed", str(exc), raw=None)
 
-    async def orchestrate(self, workflow: str, task: Task, runner: Orchestrator | WorkflowHandler) -> WorkflowResult:
+    async def orchestrate(
+        self,
+        workflow: str,
+        task: Task,
+        runner: Orchestrator | WorkflowHandler,
+    ) -> WorkflowResult:
         """Run an explicit workflow adapter without exposing orchestration internals."""
         if not workflow.strip():
             raise ValueError("workflow name must not be empty")
