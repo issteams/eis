@@ -31,11 +31,11 @@ class ProductionSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="EIS_", env_file=".env", extra="ignore")
 
     @model_validator(mode="after")
-    def validate_settings(self) -> "ProductionSettings":
+    def validate_settings(self) -> ProductionSettings:
         self._validate_values()
         return self
 
-    def validate(self) -> "ProductionSettings":  # type: ignore[override]
+    def validate(self) -> ProductionSettings:  # type: ignore[override]
         """Validate an already-created settings object for compatibility with the public API."""
         self._validate_values()
         return self
