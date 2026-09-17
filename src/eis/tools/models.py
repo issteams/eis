@@ -7,6 +7,8 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
+from eis.security.models import AuthorizationStatus
+
 
 class ExecutionPolicy(StrEnum):
     READ_ONLY = "read_only"
@@ -56,6 +58,8 @@ class ToolRequest:
     agent_id: UUID | None = None
     task_id: UUID | None = None
     request_id: UUID = field(default_factory=uuid4)
+    actor_id: str | None = None
+    target: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,3 +86,6 @@ class AuditEvent:
     arguments: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
     duration_seconds: float = 0.0
+    actor: str | None = None
+    target: str | None = None
+    authorization: AuthorizationStatus = AuthorizationStatus.UNKNOWN

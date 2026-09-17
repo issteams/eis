@@ -7,8 +7,10 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from eis.security.models import AuthorizationStatus
+from eis.security.runtime import RedactingProtector
 from eis.tools.models import (
     AuditEvent,
     ExecutionPolicy,
@@ -50,12 +52,14 @@ class SecureExecutor:
         self._audit = audit
         self._policy = policy or SecurityPolicy()
         self._limits = limits or ExecutionLimits()
+        self._protector = RedactingProtector()
 
     async def execute(self, request: ToolRequest) -> ToolResult:
         started = time.monotonic()
         definition: ToolDefinition | None = None
         status = ExecutionStatus.FAILED
         error: str | None = None
+        authorization = AuthorizationStatus.UNKNOWN
         result = ToolResult(ExecutionStatus.FAILED, request_id=request.request_id)
         try:
             definition = self._definition(request.tool)
@@ -64,6 +68,7 @@ class SecureExecutor:
             if missing:
                 raise ToolSecurityError(f"missing permissions: {', '.join(sorted(missing))}")
             self._policy.authorize(request, definition)
+            authorization = AuthorizationStatus.ALLOWED
             result = await asyncio.wait_for(
                 self._tools[request.tool].execute(request),
                 timeout=definition.timeout_seconds,
@@ -82,6 +87,7 @@ class SecureExecutor:
         except (ToolSecurityError, PermissionError) as exc:
             status = ExecutionStatus.DENIED
             error = str(exc)
+            authorization = AuthorizationStatus.DENIED
             return ToolResult(status, error=error, request_id=request.request_id)
         except Exception as exc:
             status = ExecutionStatus.FAILED
@@ -97,6 +103,9 @@ class SecureExecutor:
                     risk_level=RiskLevel.CRITICAL,
                     execution_policy=ExecutionPolicy.PROHIBITED,
                 )
+            redacted_arguments = cast(
+                dict[str, Any], self._protector.redact(dict(request.arguments))
+            )
             self._audit.record(
                 AuditEvent(
                     request_id=request.request_id,
@@ -106,9 +115,12 @@ class SecureExecutor:
                     risk_level=definition.risk_level,
                     agent_id=request.agent_id,
                     task_id=request.task_id,
-                    arguments=dict(request.arguments),
-                    error=error if error is not None else result.error,
+                    arguments=redacted_arguments,
+                    error=self._protector.redact_text(error if error is not None else result.error),
                     duration_seconds=time.monotonic() - started,
+                    actor=request.actor_id,
+                    target=self._protector.redact_text(request.target),
+                    authorization=authorization,
                 )
             )
 
@@ -122,9 +134,14 @@ class SecureExecutor:
         limit = self._limits.max_output_bytes
         stdout = result.stdout.encode()[:limit].decode(errors="replace")
         stderr = result.stderr.encode()[:limit].decode(errors="replace")
+        output = result.output
+        if isinstance(output, str):
+            output = output.encode()[:limit].decode(errors="replace")
+        elif isinstance(output, dict):
+            output = self._protector.redact(output)
         return ToolResult(
             result.status,
-            output=result.output,
+            output=output,
             error=result.error,
             exit_code=result.exit_code,
             stdout=stdout,

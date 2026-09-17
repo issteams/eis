@@ -20,11 +20,9 @@ When evidence is insufficient, EIS must be able to say so. It must never manufac
 
 ## Foundation status
 
-The repository contains the production-grade architectural foundation of EIS. Implemented foundation phases include the core runtime, knowledge system, memory system, integrity engine, and provider-independent model abstraction layer.
+The repository contains the production-oriented architectural foundation of EIS, including organizational intelligence, model abstraction, context retrieval, agent lifecycle contracts, secure tools, autonomous engineering, verification, specialized agents, security/governance, production infrastructure/observability, controlled external integrations, and resumable end-to-end engineering workflows.
 
-The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces, while retry, timeout, rate-limit and tracing concerns are handled by the model runtime boundary.
-
-Live provider credentials, autonomous loops, vector databases and side-effecting tools are intentionally not enabled by the foundation.
+The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces.
 
 ## Architecture
 
@@ -42,13 +40,29 @@ src/eis/
 ├── execution/     # controlled side effects
 ├── evaluation/    # verification and evaluation contracts
 ├── orchestration/ # workflow coordination
+├── workflows/     # durable end-to-end engineering workflows
 ├── security/      # authorization and policy boundary
-├── observability/ # structured logging/audit boundary
+├── observability/ # logs, metrics, traces, health and job recovery
 ├── adapters/      # replaceable infrastructure providers
+├── integrations/  # controlled Echowavs system adapters
 └── sdk/           # public SDK facade
 ```
 
 The core is deliberately independent of any particular LLM provider, embedding engine, vector database, repository host or execution technology. Provider adapters implement protocols instead of being imported by domain code.
+
+## Autonomous engineering workflows
+
+Phase 19 provides a durable workflow boundary for high-level engineering requests. A request can move through understanding, knowledge retrieval, product inspection, evaluation, risk identification, planning, architecture review, approval, implementation, testing, debugging, correction, security review, requirement verification, documentation, and final reporting.
+
+Workflows are persisted in SQLite and can safely stop at human approval checkpoints, survive process interruption, resume from the stored phase, and escalate when autonomous continuation is unsafe. External capabilities are injected through operation protocols; EIS does not invent or tightly couple unavailable integrations.
+
+See [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) for the workflow and governance model.
+
+## Production operations
+
+See [`docs/architecture/production.md`](docs/architecture/production.md) for deployment topology, health/readiness behavior, recovery semantics, observability dashboards, safe degradation and scaling guidance.
+
+A non-secret environment configuration template is provided at [`deploy/production.env.example`](deploy/production.env.example). Credentials and provider keys must come from the deployment environment or a secret manager; they are never committed to the repository.
 
 ## Development
 
@@ -69,13 +83,7 @@ CI runs linting, formatting checks, strict type checking and tests on Python 3.1
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — architecture and domain boundaries.
+- [`docs/architecture/production.md`](docs/architecture/production.md) — production infrastructure and observability.
+- [`docs/architecture/autonomous-workflows.md`](docs/architecture/autonomous-workflows.md) — Phase 19 workflow lifecycle and governance.
 - [`docs/development.md`](docs/development.md) — setup and engineering rules.
 - [`docs/decisions/0001-foundation-boundaries.md`](docs/decisions/0001-foundation-boundaries.md) — initial architecture decision record.
-
-## Versioning
-
-Current package version: **0.1.0**. Public SDK stability and Semantic Versioning discipline will be tightened as the API matures.
-
-## License
-
-Proprietary — Echowavs.
