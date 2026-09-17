@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import itertools
 from enum import IntEnum
-from typing import Awaitable, TypeVar
+from typing import Any, Awaitable, TypeVar
 
 T = TypeVar("T")
 
@@ -27,7 +27,9 @@ class TaskScheduler:
     def __init__(self, *, workers: int = 4, max_queue: int = 128) -> None:
         if workers < 1 or max_queue < 1:
             raise ValueError("workers and max_queue must be positive")
-        self._queue: asyncio.PriorityQueue = asyncio.PriorityQueue(maxsize=max_queue)
+        self._queue: asyncio.PriorityQueue[tuple[int, int, Awaitable[Any], asyncio.Future[Any]]] = (
+            asyncio.PriorityQueue(maxsize=max_queue)
+        )
         self._workers = workers
         self._sequence = itertools.count()
         self._tasks: list[asyncio.Task[None]] = []
