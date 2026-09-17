@@ -80,7 +80,10 @@ def test_router_explicit_model_and_cost() -> None:
     assert selected.name == "slow"
     assert request.model == "slow"
     assert router.estimate_cost(router.route(request), 1_000_000, 2_000_000) == 0.0
-    assert router.estimate_cost(router.route(GenerationRequest(prompt="x")), 1_000_000, 2_000_000) == 5.0
+    assert (
+        router.estimate_cost(router.route(GenerationRequest(prompt="x")), 1_000_000, 2_000_000)
+        == 5.0
+    )
     assert len(router.metadata()) == 2
 
 

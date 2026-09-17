@@ -17,9 +17,10 @@ import resource
 import sqlite3
 import time
 import tracemalloc
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from eis.context.models import ContextItem, ProvenanceRecord, SourceKind
 from eis.context.retrieval import InMemoryRetriever, QueryNormalizer
@@ -45,9 +46,7 @@ async def _timed(name: str, operation: Callable[[], Awaitable[Any]]) -> Measurem
 async def benchmark_retrieval() -> Measurement:
     provenance = ProvenanceRecord("bench", SourceKind.KNOWLEDGE, "bench://local")
     items = [
-        ContextItem.create(
-            f"EIS engineering evidence item {i} retrieval correctness", provenance
-        )
+        ContextItem.create(f"EIS engineering evidence item {i} retrieval correctness", provenance)
         for i in range(1000)
     ]
     retriever = InMemoryRetriever(items)
@@ -99,9 +98,7 @@ def benchmark_database() -> Measurement:
             ((f"item-{i}",) for i in range(1000)),
         )
         db.execute("CREATE INDEX evidence_content_idx ON evidence(content)")
-        rows = db.execute(
-            "SELECT COUNT(*) FROM evidence WHERE content LIKE 'item-%'"
-        ).fetchone()[0]
+        rows = db.execute("SELECT COUNT(*) FROM evidence WHERE content LIKE 'item-%'").fetchone()[0]
     return Measurement("database_query", time.perf_counter() - started, float(rows), "rows")
 
 
@@ -128,9 +125,7 @@ async def benchmark_scheduler() -> Measurement:
 
 
 def benchmark_context() -> Measurement:
-    provenance = ProvenanceRecord(
-        "bench", SourceKind.KNOWLEDGE, "bench://context", authority=1.0
-    )
+    provenance = ProvenanceRecord("bench", SourceKind.KNOWLEDGE, "bench://context", authority=1.0)
     items = [
         ContextItem.create(
             f"evidence {i} " + "x" * 500,
