@@ -19,9 +19,9 @@ import time
 import tracemalloc
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Awaitable, Callable, Any
+from typing import Any, Awaitable, Callable
 
-from eis.context.models import ContextItem, ProvenanceRecord, Query, SourceKind
+from eis.context.models import ContextItem, ProvenanceRecord, SourceKind
 from eis.context.retrieval import InMemoryRetriever, QueryNormalizer
 from eis.performance.context import approximate_tokens, optimize_context
 from eis.performance.execution import batch_gather
@@ -121,10 +121,7 @@ async def benchmark_scheduler() -> Measurement:
     scheduler = TaskScheduler(workers=4, max_queue=16)
     started = time.perf_counter()
     await asyncio.gather(
-        *(
-            scheduler.submit(asyncio.sleep(0), priority=Priority.NORMAL)
-            for _ in range(16)
-        )
+        *(scheduler.submit(asyncio.sleep(0), priority=Priority.NORMAL) for _ in range(16))
     )
     await scheduler.close()
     return Measurement("task_scheduler", time.perf_counter() - started, 4, "workers")
