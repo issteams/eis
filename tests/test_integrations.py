@@ -12,7 +12,7 @@ from eis.integrations import (
     RepositoryRef,
 )
 from eis.integrations.github import GitHubConnector
-from eis.security.models import Permission, Principal, Role
+from eis.security.models import Approval, ApprovalStatus, Permission, Principal, Role
 from eis.security.runtime import InMemoryAuditSink, RoleAuthorizer, SecurityGateway
 
 
@@ -68,8 +68,9 @@ async def test_local_connector_denies_unauthorized_path(tmp_path: Path) -> None:
 
 def test_github_repository_mapping_is_provider_neutral() -> None:
     principal = Principal("integration", roles=frozenset({"reader"}))
+    permissions = frozenset({Permission("read", "*"), Permission("write", "*")})
     authorizer = RoleAuthorizer(
-        roles={"reader": Role("reader", frozenset({Permission("read", "*"), Permission("write", "*")}))},
+        roles={"reader": Role("reader", permissions)},
         principals={principal.id: principal},
     )
     security = IntegrationSecurity(SecurityGateway(authorizer, InMemoryAuditSink()), principal)
@@ -110,6 +111,34 @@ async def test_integration_creates_tasks_without_external_side_effects(
 
     assert task.objective == "inspect architecture"
     assert task.repository == repository
+
+
+@pytest.mark.anyio
+async def test_external_write_requires_approval(security: IntegrationSecurity) -> None:
+    called = False
+
+    async def action() -> str:
+        nonlocal called
+        called = True
+        return "done"
+
+    with pytest.raises(PermissionError):
+        await security.write("github/repos/demo", operation="write", action=action)
+    assert not called
+
+    approval = Approval(
+        request_id=__import__("uuid").uuid4(),
+        status=ApprovalStatus.APPROVED,
+        approver="human",
+        reason="approved test action",
+    )
+    with pytest.raises(PermissionError):
+        await security.write(
+            "github/repos/demo",
+            operation="write",
+            action=action,
+            approval=approval,
+        )
 
 
 def test_github_document_path_rejects_traversal() -> None:
