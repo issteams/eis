@@ -29,9 +29,7 @@ class RedTeamFramework:
             if inspect.isawaitable(observation):
                 observation = await observation
             if observation.case_id != case.id:
-                raise ValueError(
-                    f"target returned case {observation.case_id!r} for {case.id!r}"
-                )
+                raise ValueError(f"target returned case {observation.case_id!r} for {case.id!r}")
             if observation.blocked:
                 blocked += 1
             if observation.safe:
