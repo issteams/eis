@@ -2,6 +2,7 @@
 
 from eis.organization import (
     CRAFTIQ,
+    ECHOWAVS,
     INITIAL_STORE,
     SMARKET,
     UNKNOWN,
@@ -47,6 +48,17 @@ def test_kind_filter_isolates_organizational_entities() -> None:
     }
 
 
+def test_product_kind_filter_retrieves_only_products() -> None:
+    results = INITIAL_STORE.retrieve("", kind=OrganizationEntityKind.PRODUCT)
+
+    assert {product.id for product in results} == {
+        "craftiq",
+        "stitchai",
+        "smarket",
+        "eis",
+    }
+
+
 def test_relationship_retrieval_is_explicit() -> None:
     relationships = INITIAL_STORE.relationships("smarket")
 
@@ -55,6 +67,13 @@ def test_relationship_retrieval_is_explicit() -> None:
         ("part_of", "stitchai"),
         ("belongs_to", "echowavs"),
     }
+
+
+def test_store_accessors_return_known_and_unknown_entities() -> None:
+    assert INITIAL_STORE.organization().name == ECHOWAVS.name
+    assert INITIAL_STORE.get_entity("echowavs") == ECHOWAVS
+    assert INITIAL_STORE.get_entity("missing") is None
+    assert INITIAL_STORE.get_product("missing") is None
 
 
 def test_future_products_require_no_core_architecture_change() -> None:
