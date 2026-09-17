@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from eis.context.models import ContextItem, ContextRequest, ContextResult
 from eis.context.protocols import Retriever
 from eis.context.retrieval import ContextScorer, QueryNormalizer, deduplicate
@@ -24,11 +26,13 @@ class ContextBuilder:
 
     async def build(self, request: ContextRequest) -> ContextResult:
         query = self._normalizer.normalize(request.query)
-        retrieved: list[ContextItem] = []
-        for retriever in self._retrievers:
-            retrieved.extend(
-                await retriever.retrieve(query, limit=request.limit, metadata=request.metadata)
+        results = await asyncio.gather(
+            *(
+                retriever.retrieve(query, limit=request.limit, metadata=request.metadata)
+                for retriever in self._retrievers
             )
+        )
+        retrieved = [item for result in results for item in result]
         filtered = [
             item
             for item in deduplicate(retrieved)
