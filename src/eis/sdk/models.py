@@ -41,6 +41,15 @@ class KnowledgeItem:
 
 
 @dataclass(frozen=True, slots=True)
+class MemoryItem:
+    """Memory stored through the stable SDK surface."""
+
+    content: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    id: UUID = field(default_factory=uuid4)
+
+
+@dataclass(frozen=True, slots=True)
 class Task:
     """A user-visible EIS task."""
 
@@ -131,6 +140,7 @@ __all__ = [
     "EvaluationResult",
     "ExecutionResult",
     "KnowledgeItem",
+    "MemoryItem",
     "Product",
     "Task",
     "TaskResult",
