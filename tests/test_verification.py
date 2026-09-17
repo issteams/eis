@@ -139,4 +139,4 @@ def test_regression_is_checked_before_and_after_correction():
 
     assert report.verified
     assert regression.baseline_calls == 1
-    assert regression.regression_calls == 1
+    assert regression.regression_calls == 2
