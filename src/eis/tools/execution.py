@@ -7,7 +7,7 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from eis.security.models import AuthorizationStatus
 from eis.security.runtime import RedactingProtector
@@ -103,6 +103,9 @@ class SecureExecutor:
                     risk_level=RiskLevel.CRITICAL,
                     execution_policy=ExecutionPolicy.PROHIBITED,
                 )
+            redacted_arguments = cast(
+                dict[str, Any], self._protector.redact(dict(request.arguments))
+            )
             self._audit.record(
                 AuditEvent(
                     request_id=request.request_id,
@@ -112,7 +115,7 @@ class SecureExecutor:
                     risk_level=definition.risk_level,
                     agent_id=request.agent_id,
                     task_id=request.task_id,
-                    arguments=self._protector.redact(dict(request.arguments)),
+                    arguments=redacted_arguments,
                     error=self._protector.redact_text(error if error is not None else result.error),
                     duration_seconds=time.monotonic() - started,
                     actor=request.actor_id,
