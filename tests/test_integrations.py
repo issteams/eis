@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import uuid
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from eis.integrations import (
     RepositoryRef,
 )
 from eis.integrations.github import GitHubConnector
+from eis.integrations.models import CIRun, Change, Document, RepositorySnapshot
 from eis.security.models import Approval, ApprovalStatus, Permission, Principal, Role
 from eis.security.runtime import InMemoryAuditSink, RoleAuthorizer, SecurityGateway
 
@@ -98,6 +100,89 @@ def test_github_connector_rejects_untrusted_host(security: IntegrationSecurity) 
 
 
 @pytest.mark.anyio
+async def test_github_read_operations_are_mapped(security: IntegrationSecurity) -> None:
+    repository = RepositoryRef(
+        "issteams/eis",
+        "https://github.com/issteams/eis",
+        default_branch="main",
+        provider=IntegrationKind.GITHUB,
+    )
+
+    class FakeGitHub(GitHubConnector):
+        async def _get(self, path: str, *, resource: str):
+            if path == "/user/repos?per_page=100":
+                return [
+                    {
+                        "full_name": "issteams/eis",
+                        "html_url": "https://github.com/issteams/eis",
+                        "default_branch": "main",
+                    }
+                ]
+            if "/git/trees/" in path:
+                return {
+                    "truncated": True,
+                    "tree": [
+                        {"path": "README.md", "type": "blob"},
+                        {"path": "src", "type": "tree"},
+                    ],
+                }
+            if "/commits?" in path:
+                return [
+                    {
+                        "sha": "abc",
+                        "html_url": "https://github.com/issteams/eis/commit/abc",
+                        "commit": {
+                            "message": "first change\nbody",
+                            "author": {"name": "Abba", "date": "2026-09-17T00:00:00Z"},
+                        },
+                    }
+                ]
+            if "/contents/README.md" in path:
+                return {
+                    "encoding": "base64",
+                    "content": base64.b64encode(b"# EIS").decode(),
+                }
+            if "/actions/runs" in path:
+                return {
+                    "workflow_runs": [
+                        {
+                            "id": 7,
+                            "status": "completed",
+                            "conclusion": "success",
+                            "html_url": "https://github.com/issteams/eis/actions/runs/7",
+                        }
+                    ]
+                }
+            raise AssertionError(f"unexpected path: {path}")
+
+    connector = FakeGitHub(security)
+    repositories = await connector.discover()
+    snapshot = await connector.inspect(repository)
+    changes = await connector.changes(repository)
+    documents = await connector.ingest(repository)
+    runs = await connector.runs(repository, limit=0)
+
+    assert repositories[0].name == "issteams/eis"
+    assert snapshot.files == ("README.md",)
+    assert snapshot.directories == ("src",)
+    assert snapshot.documentation == ("README.md",)
+    assert snapshot.metadata["tree_truncated"] is True
+    assert changes[0].summary == "first change"
+    assert documents[0].content == "# EIS"
+    assert runs[0].identifier == "7"
+
+
+@pytest.mark.anyio
+async def test_github_discover_rejects_invalid_payload(security: IntegrationSecurity) -> None:
+    class FakeGitHub(GitHubConnector):
+        async def _get(self, path: str, *, resource: str):
+            return {"repositories": []}
+
+    with pytest.raises(ValueError, match="not a list"):
+        await FakeGitHub(security).discover()
+
+
+@pytest.mark.anyio
 async def test_integration_creates_tasks_without_external_side_effects(
     security: IntegrationSecurity,
 ) -> None:
@@ -117,6 +202,69 @@ async def test_integration_creates_tasks_without_external_side_effects(
 
     assert task.objective == "inspect architecture"
     assert task.repository == repository
+
+
+@pytest.mark.anyio
+async def test_integration_project_context_and_verification(security: IntegrationSecurity) -> None:
+    repository = RepositoryRef("demo", "/tmp/demo", provider=IntegrationKind.LOCAL_REPOSITORY)
+    snapshot = RepositorySnapshot(repository, ("README.md",), (), ("README.md",))
+    change = Change("1", "update", "author", "now", "url")
+    document = Document("README.md", "content", "source")
+    run = CIRun("1", "completed", "success", "url")
+
+    class Repositories:
+        async def discover(self):
+            return (repository,)
+
+        async def inspect(self, target):
+            return snapshot
+
+        async def changes(self, target):
+            return (change,)
+
+    class Documentation:
+        async def ingest(self, target):
+            return (document,)
+
+    class CI:
+        async def runs(self, target, limit=10):
+            return (run,)
+
+    class Issues:
+        async def create_issue(self, target, title, body, *, approval=None):
+            return "issue-url"
+
+    integration = EchowavsIntegration(Repositories(), Documentation(), CI(), Issues())
+    assert await integration.discover_repositories() == (repository,)
+    assert await integration.inspect_repository(repository) == snapshot
+    context = await integration.project_context(repository, ci_limit=3)
+    assert context.documentation == (document,)
+    assert context.changes == (change,)
+    assert context.ci_runs == (run,)
+    assert await integration.create_issue(repository, "title", "body") == "issue-url"
+    assert await integration.verify(repository, limit=3) == (run,)
+
+
+@pytest.mark.anyio
+async def test_integration_requires_configured_optional_adapters(security: IntegrationSecurity) -> None:
+    repository = RepositoryRef("demo", "/tmp/demo", provider=IntegrationKind.LOCAL_REPOSITORY)
+    integration = EchowavsIntegration(object())
+
+    with pytest.raises(RuntimeError, match="issue tracking"):
+        await integration.create_issue(repository, "title", "body")
+    with pytest.raises(RuntimeError, match="CI integration"):
+        await integration.verify(repository)
+    with pytest.raises(ValueError, match="objective"):
+        await integration.create_engineering_task(repository, "   ")
+
+
+@pytest.mark.anyio
+async def test_integration_security_records_failed_actions(security: IntegrationSecurity) -> None:
+    async def fail() -> str:
+        raise RuntimeError("controlled failure")
+
+    with pytest.raises(RuntimeError, match="controlled failure"):
+        await security.read("github/test", operation="read", action=fail)
 
 
 @pytest.mark.anyio
