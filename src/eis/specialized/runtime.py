@@ -5,14 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from eis.specialized.models import (
+from .models import (
     AgentAssignment,
     AgentChallenge,
     AgentKind,
     AgentSpec,
     CoordinationResult,
 )
-from eis.specialized.protocols import AgentFactory, SpecializedAgent
+from .protocols import AgentFactory, SpecializedAgent
 
 
 SPECS: dict[AgentKind, AgentSpec] = {
