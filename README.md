@@ -20,11 +20,11 @@ When evidence is insufficient, EIS must be able to say so. It must never manufac
 
 ## Foundation status
 
-The repository contains the production-grade architectural foundation of EIS. Implemented foundation phases include the core runtime, knowledge system, memory system, integrity engine, and provider-independent model abstraction layer.
+The repository contains the production-oriented architectural foundation of EIS, including organizational intelligence, model abstraction, context retrieval, agent lifecycle contracts, secure tools, autonomous engineering, verification, specialized agents, security/governance, and production infrastructure/observability.
 
-The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces, while retry, timeout, rate-limit and tracing concerns are handled by the model runtime boundary.
+The model layer defines stable interfaces for generation, structured generation, embeddings, tool calls, streaming, model metadata, usage and cost tracking. Provider adapters remain behind those interfaces.
 
-Live provider credentials, autonomous loops, vector databases and side-effecting tools are intentionally not enabled by the foundation.
+Phase 14 adds structured JSON logging, metrics, trace spans, health/readiness checks, model/tool/task/verification instrumentation, configurable retries/timeouts/concurrency, durable recoverable jobs, graceful shutdown primitives, and environment-driven production configuration. Reference implementations are deliberately replaceable with centralized production services such as managed databases, queues, metrics and tracing backends.
 
 ## Architecture
 
@@ -43,12 +43,18 @@ src/eis/
 ├── evaluation/    # verification and evaluation contracts
 ├── orchestration/ # workflow coordination
 ├── security/      # authorization and policy boundary
-├── observability/ # structured logging/audit boundary
+├── observability/ # logs, metrics, traces, health and job recovery
 ├── adapters/      # replaceable infrastructure providers
 └── sdk/           # public SDK facade
 ```
 
 The core is deliberately independent of any particular LLM provider, embedding engine, vector database, repository host or execution technology. Provider adapters implement protocols instead of being imported by domain code.
+
+## Production operations
+
+See [`docs/architecture/production.md`](docs/architecture/production.md) for deployment topology, health/readiness behavior, recovery semantics, observability dashboards, safe degradation and scaling guidance.
+
+A non-secret environment configuration template is provided at [`deploy/production.env.example`](deploy/production.env.example). Credentials and provider keys must come from the deployment environment or a secret manager; they are never committed to the repository.
 
 ## Development
 
@@ -69,6 +75,7 @@ CI runs linting, formatting checks, strict type checking and tests on Python 3.1
 ## Documentation
 
 - [`docs/architecture.md`](docs/architecture.md) — architecture and domain boundaries.
+- [`docs/architecture/production.md`](docs/architecture/production.md) — production infrastructure and observability.
 - [`docs/development.md`](docs/development.md) — setup and engineering rules.
 - [`docs/decisions/0001-foundation-boundaries.md`](docs/decisions/0001-foundation-boundaries.md) — initial architecture decision record.
 
