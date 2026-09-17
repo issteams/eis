@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from eis.security.models import ApprovalStatus, Permission, Principal, Role
-from eis.security.runtime import InMemoryAuditSink, SecurityGateway, RoleAuthorizer
+from eis.security.models import Permission, Principal, Role
+from eis.security.runtime import InMemoryAuditSink, RoleAuthorizer, SecurityGateway
 from eis.workflows import (
     EngineeringWorkflow,
     WorkflowEvent,
@@ -20,7 +21,7 @@ class Operations:
     def __init__(self) -> None:
         self.phases: list[WorkflowPhase] = []
 
-    async def execute(self, phase: WorkflowPhase, state):
+    async def execute(self, phase: WorkflowPhase, state: Any) -> WorkflowEvent:
         self.phases.append(phase)
         if phase is WorkflowPhase.TEST:
             return WorkflowEvent(
@@ -37,16 +38,30 @@ class Operations:
                 risks=("external deployment remains human-controlled",),
             )
         if phase is WorkflowPhase.FINAL_REPORT:
-            return WorkflowEvent(phase=phase, status="completed", detail="final report prepared")
-        return WorkflowEvent(phase=phase, status="completed", detail=f"completed {phase.value}")
+            return WorkflowEvent(
+                phase=phase,
+                status="completed",
+                detail="final report prepared",
+            )
+        return WorkflowEvent(
+            phase=phase,
+            status="completed",
+            detail=f"completed {phase.value}",
+        )
 
 
 @pytest.fixture
-def workflow_factory(tmp_path: Path):
+def workflow_factory(tmp_path: Path) -> tuple[EngineeringWorkflow, Operations, SecurityGateway]:
     principal = Principal("workflow", roles=frozenset({"engineer"}))
-    role = Role("engineer", frozenset({Permission("read", "*"), Permission("write", "*" )}))
+    role = Role(
+        "engineer",
+        frozenset({Permission("read", "*"), Permission("write", "*")}),
+    )
     security = SecurityGateway(
-        RoleAuthorizer(roles={"engineer": role}, principals={principal.id: principal}),
+        RoleAuthorizer(
+            roles={"engineer": role},
+            principals={principal.id: principal},
+        ),
         InMemoryAuditSink(),
     )
     operations = Operations()
@@ -60,7 +75,9 @@ def workflow_factory(tmp_path: Path):
 
 
 @pytest.mark.anyio
-async def test_workflow_stops_at_human_approval_and_resumes(workflow_factory) -> None:
+async def test_workflow_stops_at_human_approval_and_resumes(
+    workflow_factory: tuple[EngineeringWorkflow, Operations, SecurityGateway],
+) -> None:
     workflow, operations, security = workflow_factory
     request = WorkflowRequest("Add feature X to product Y", "product-y")
     state = workflow.start(request)
@@ -87,10 +104,13 @@ async def test_workflow_stops_at_human_approval_and_resumes(workflow_factory) ->
     assert "pytest passed" in completed.tests
     assert "test-run:success" in completed.evidence
     assert completed.remaining_risks
+    assert "implementation approved" in completed.human_decisions
 
 
 @pytest.mark.anyio
-async def test_workflow_rejects_missing_or_mismatched_approval(workflow_factory) -> None:
+async def test_workflow_rejects_missing_or_mismatched_approval(
+    workflow_factory: tuple[EngineeringWorkflow, Operations, SecurityGateway],
+) -> None:
     workflow, _, security = workflow_factory
     request = WorkflowRequest("Implement change", "repo")
     workflow.start(request)
@@ -114,7 +134,9 @@ async def test_workflow_rejects_missing_or_mismatched_approval(workflow_factory)
 
 
 @pytest.mark.anyio
-async def test_workflow_persists_interrupted_state(workflow_factory) -> None:
+async def test_workflow_persists_interrupted_state(
+    workflow_factory: tuple[EngineeringWorkflow, Operations, SecurityGateway],
+) -> None:
     workflow, _, _ = workflow_factory
     request = WorkflowRequest("Inspect architecture", "repo")
     workflow.start(request)
@@ -127,12 +149,17 @@ async def test_workflow_persists_interrupted_state(workflow_factory) -> None:
 
 
 @pytest.mark.anyio
-async def test_workflow_escalation_is_persisted(workflow_factory) -> None:
+async def test_workflow_escalation_is_persisted(
+    workflow_factory: tuple[EngineeringWorkflow, Operations, SecurityGateway],
+) -> None:
     workflow, _, _ = workflow_factory
     request = WorkflowRequest("Change production infrastructure", "repo")
     workflow.start(request)
 
-    report = await workflow.escalate(str(request.id), "production scope requires human decision")
+    report = await workflow.escalate(
+        str(request.id),
+        "production scope requires human decision",
+    )
 
     assert report.status is WorkflowStatus.ESCALATED
     assert report.escalation_reason == "production scope requires human decision"
@@ -140,7 +167,9 @@ async def test_workflow_escalation_is_persisted(workflow_factory) -> None:
 
 
 @pytest.mark.anyio
-async def test_completed_workflow_is_idempotent_after_completion(workflow_factory) -> None:
+async def test_completed_workflow_is_idempotent_after_completion(
+    workflow_factory: tuple[EngineeringWorkflow, Operations, SecurityGateway],
+) -> None:
     workflow, operations, security = workflow_factory
     request = WorkflowRequest("Add safe feature", "repo")
     workflow.start(request)
