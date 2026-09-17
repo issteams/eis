@@ -19,7 +19,11 @@ class RetryConfig:
     jitter: float = 0.1
 
     def __post_init__(self) -> None:
-        if self.max_attempts < 1 or self.base_delay_seconds < 0 or self.max_delay_seconds < 0:
+        if (
+            self.max_attempts < 1
+            or self.base_delay_seconds < 0
+            or self.max_delay_seconds < 0
+        ):
             raise ValueError("invalid retry configuration")
 
 
@@ -38,7 +42,10 @@ async def retry_optimized(
         except Exception as exc:
             if attempt + 1 >= selected.max_attempts or not retryable(exc):
                 raise
-            delay = min(selected.max_delay_seconds, selected.base_delay_seconds * (2**attempt))
+            delay = min(
+                selected.max_delay_seconds,
+                selected.base_delay_seconds * (2**attempt),
+            )
             if selected.jitter:
                 delay += random.uniform(0.0, delay * selected.jitter)
             await sleep(delay)
