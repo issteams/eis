@@ -16,7 +16,6 @@ from eis.organization.models import (
 )
 from eis.organization.store import InMemoryOrganizationStore
 
-
 ECHOWAVS = OrganizationEntity(
     id="echowavs",
     kind=OrganizationEntityKind.ORGANIZATION,
