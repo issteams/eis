@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from eis.evaluation.models import (
-    EvaluationCase,
-    EvaluationCategory,
-    EvaluationSeverity,
-)
+from eis.evaluation.models import EvaluationCase, EvaluationCategory, EvaluationSeverity
 
 
 CASES: tuple[EvaluationCase, ...] = (
@@ -154,7 +150,10 @@ CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         "conflict-001",
         EvaluationCategory.SOURCE_ATTRIBUTION,
-        "Two supplied sources disagree. Report the disagreement instead of merging them into one fact.",
+        (
+            "Two supplied sources disagree. Report the disagreement instead of merging "
+            "them into one fact."
+        ),
         "Attribute both sources and preserve the conflict.",
         context=("Source A: timeout is 30 seconds.", "Source B: timeout is 120 seconds."),
         adversarial=True,
