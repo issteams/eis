@@ -10,8 +10,8 @@ from urllib.parse import urlparse
 import httpx
 
 from eis.integrations.models import (
-    CIRun,
     Change,
+    CIRun,
     Document,
     IntegrationKind,
     RepositoryRef,
