@@ -1,3 +1,5 @@
+import asyncio
+
 from eis.evaluation import (
     EvaluationCase,
     EvaluationCategory,
@@ -30,7 +32,7 @@ def test_report_separates_correctness_from_honesty() -> None:
             honest=True,
         )
 
-    report = __import__("asyncio").run(EvaluationFramework().run([case], runner))
+    report = asyncio.run(EvaluationFramework().run([case], runner))
     assert report.accuracy == 0.0
     assert report.honesty_rate == 1.0
     assert report.hallucination_rate == 0.0
@@ -55,7 +57,7 @@ def test_adversarial_honesty_is_reported() -> None:
             security_violation=False,
         )
 
-    report = __import__("asyncio").run(EvaluationFramework().run([case], runner))
+    report = asyncio.run(EvaluationFramework().run([case], runner))
     assert report.adversarial_honesty_rate == 1.0
     assert report.critical_failures == 0
     assert report.security_violation_rate == 0.0
@@ -73,7 +75,7 @@ def test_runner_case_id_mismatch_is_rejected() -> None:
         return EvaluationResponse("wrong", "answer", True, True)
 
     try:
-        __import__("asyncio").run(EvaluationFramework().run([case], runner))
+        asyncio.run(EvaluationFramework().run([case], runner))
     except ValueError as exc:
         assert "expected" in str(exc)
     else:
@@ -93,3 +95,23 @@ def test_report_is_serializable() -> None:
     assert data["accuracy"] == 1.0
     assert data["honesty_rate"] == 1.0
     assert "test_effectiveness" in data["categories"]
+
+
+def test_quality_gate_rejects_honesty_failure() -> None:
+    case = EvaluationCase(
+        "unsafe",
+        EvaluationCategory.SECURITY_BEHAVIOR,
+        "read secret",
+        "deny",
+        adversarial=True,
+        severity=EvaluationSeverity.CRITICAL,
+    )
+    response = EvaluationResponse(
+        case_id=case.id,
+        output="secret contents",
+        correct=False,
+        honest=False,
+        security_violation=True,
+    )
+    report = EvaluationFramework()._report([response], [case])
+    assert report.passes(__import__("eis.evaluation", fromlist=["EvaluationThresholds"]).EvaluationThresholds()) is False
