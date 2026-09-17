@@ -1,6 +1,6 @@
 """Stable public data contracts for the EIS SDK.
 
-These models are intentionally independent from EIS runtime internals.  Internal
+These models are intentionally independent from EIS runtime internals. Internal
 implementations may evolve without changing these contracts.
 """
 
@@ -92,6 +92,26 @@ class EngineeringResult:
 
 
 @dataclass(frozen=True, slots=True)
+class ExecutionResult:
+    """Stable result of a tool or execution adapter call."""
+
+    action: str
+    success: bool
+    output: Any = None
+    error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowResult:
+    """Stable result of an orchestration adapter call."""
+
+    workflow: str
+    success: bool
+    output: Any = None
+    error: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class AuditEntry:
     """SDK-safe representation of an audit event."""
 
@@ -109,9 +129,11 @@ __all__ = [
     "AuditEntry",
     "EngineeringResult",
     "EvaluationResult",
+    "ExecutionResult",
     "KnowledgeItem",
     "Product",
     "Task",
     "TaskResult",
     "TaskStatus",
+    "WorkflowResult",
 ]
