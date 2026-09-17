@@ -97,8 +97,9 @@ class VerificationReport:
 
     @property
     def verified(self) -> bool:
-        return (
-            self.status == "verified"
-            and not self.escalated
-            and all(stage.passed for stage in self.stages)
-        )
+        if self.status != "verified" or self.escalated:
+            return False
+        latest: dict[VerificationStage, StageResult] = {}
+        for stage in self.stages:
+            latest[stage.stage] = stage
+        return bool(latest) and all(stage.passed for stage in latest.values())
