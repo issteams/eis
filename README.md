@@ -2,6 +2,8 @@
 
 EIS is the intelligence and controlled autonomous execution foundation of Echowavs.
 
+**Release target: 1.0.0.** The package is not considered released until the release gates in `docs/release-readiness.md` pass on the exact release commit.
+
 > **Defining principle: Honest Intelligence.**
 
 EIS provides explicit boundaries for organizational knowledge, memory, reasoning, agents, tools, controlled execution, verification, security, governance, observability, integrations, durable workflows, and performance optimization.
@@ -59,42 +61,10 @@ See [`docs/architecture.md`](docs/architecture.md) and [`docs/vision.md`](docs/v
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
-```
-
-Then:
-
-```python
-from eis import EIS
-
-runtime = EIS()
-runtime.register_product("CraftIQ", "AI marketing platform")
-print(runtime.products())
+python examples/sdk_quickstart.py
 ```
 
 The supported public import surfaces are `eis` and `eis.sdk`.
-
-## SDK example
-
-```python
-from eis import EIS
-from eis.sdk import AgentResult
-
-runtime = EIS()
-task = runtime.create_task("Inspect the architecture")
-
-async def handler(task):
-    return AgentResult(
-        agent="architect",
-        task=task,
-        output={"status": "inspected"},
-        completed=True,
-    )
-
-runtime.register_agent("architect", handler)
-result = await runtime.run_agent("architect", task)
-```
-
-For the complete supported SDK surface, see [`docs/sdk.md`](docs/sdk.md) and [`docs/api-reference.md`](docs/api-reference.md). The executable quickstart is [`examples/sdk_quickstart.py`](examples/sdk_quickstart.py).
 
 ## Phase 20 performance
 
@@ -119,9 +89,10 @@ ruff check .
 ruff format --check .
 mypy src
 pytest --cov=eis --cov-report=term-missing
+python -m build
 ```
 
-See [`docs/installation.md`](docs/installation.md), [`docs/configuration.md`](docs/configuration.md), [`docs/development.md`](docs/development.md), and [`docs/testing.md`](docs/testing.md).
+For the complete release gate, see [`docs/release-readiness.md`](docs/release-readiness.md).
 
 ## Documentation map
 
@@ -138,12 +109,5 @@ See [`docs/installation.md`](docs/installation.md), [`docs/configuration.md`](do
 | Security and governance | [`docs/architecture/security-governance.md`](docs/architecture/security-governance.md) |
 | Integrations | [`docs/integrations.md`](docs/integrations.md) |
 | Development | [`docs/development.md`](docs/development.md) |
-| Testing | [`docs/testing.md`](docs/testing.md) |
-| Deployment | [`docs/deployment.md`](docs/deployment.md) |
-| Troubleshooting | [`docs/troubleshooting.md`](docs/troubleshooting.md) |
-| API reference | [`docs/api-reference.md`](docs/api-reference.md) |
-| ADRs | [`docs/decisions/README.md`](docs/decisions/README.md) |
-| Contribution | [`docs/contributing.md`](docs/contributing.md) |
-| Release process | [`docs/release.md`](docs/release.md) |
-
-Detailed subsystem documentation is under [`docs/architecture/`](docs/architecture/), including knowledge, memory, model abstraction, agents, tools, verification, security, production, performance, integrations, and autonomous workflows.
+| Release readiness | [`docs/release-readiness.md`](docs/release-readiness.md) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
