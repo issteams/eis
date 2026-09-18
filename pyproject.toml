@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "echowavs-eis"
-version = "0.1.0"
+version = "1.0.0"
 description = "Echowavs Intelligence System"
 readme = "README.md"
 requires-python = ">=3.11"
