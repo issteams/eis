@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from eis.adapters.models import OpenAICompatibleProvider
+from eis.adapters.models import CloudflareProvider, OpenAICompatibleProvider
 from eis.config.settings import Settings, get_settings
 from eis.models.errors import ModelConfigurationError
 from eis.models.fakes import FakeModelProvider
@@ -41,8 +41,7 @@ def default_registry(settings: Settings | None = None) -> ModelRegistry:
     """Build the built-in registry from the configured model provider.
 
     The registry always keeps the deterministic fake provider for local/testing use.
-    When a supported OpenAI-compatible provider is configured through EIS settings,
-    it is wired automatically so the runtime can make real model requests.
+    Supported external providers are wired only when selected through EIS settings.
     """
     resolved_settings = settings or get_settings()
     providers: dict[str, ModelProvider] = {FakeModelProvider.name: FakeModelProvider()}
@@ -63,5 +62,13 @@ def default_registry(settings: Settings | None = None) -> ModelRegistry:
             resolved_settings,
             name=provider_name,
         )
+    elif provider_name == "cloudflare":
+        if not resolved_settings.cloudflare_account_id:
+            raise ModelConfigurationError("cloudflare_account_id is required for provider: cloudflare")
+        if not resolved_settings.model_api_key:
+            raise ModelConfigurationError("model_api_key is required for provider: cloudflare")
+        if not resolved_settings.model_name:
+            raise ModelConfigurationError("model_name is required for provider: cloudflare")
+        providers[provider_name] = CloudflareProvider(resolved_settings)
 
     return ModelRegistry(providers)
