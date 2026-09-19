@@ -24,7 +24,7 @@ from eis.models.errors import (
     ModelValidationError,
 )
 from eis.models.fakes import FakeModel, FakeModelProvider
-from eis.models.registry import ModelRegistry
+from eis.models.registry import ModelRegistry, default_registry
 from eis.models.runtime import ReliableModel
 
 
@@ -149,6 +149,34 @@ def test_registry_selects_configured_provider() -> None:
         assert model.metadata.model == "fake-model"
 
     asyncio.run(run())
+
+
+def test_default_registry_wires_configured_openrouter_provider() -> None:
+    async def run() -> None:
+        settings = Settings(
+            model_provider="openrouter",
+            model_name="google/gemini-2.5-flash",
+            model_base_url="https://openrouter.ai/api/v1",
+            model_api_key="test-key",
+            model_max_attempts=3,
+        )
+        registry = default_registry(settings)
+        model = await registry.resolve(settings)
+        assert model.metadata.provider == "openrouter"
+        assert model.metadata.model == "google/gemini-2.5-flash"
+
+    asyncio.run(run())
+
+
+def test_default_registry_rejects_incomplete_openrouter_configuration() -> None:
+    with pytest.raises(ModelConfigurationError, match="model_api_key is required"):
+        default_registry(
+            Settings(
+                model_provider="openrouter",
+                model_name="google/gemini-2.5-flash",
+                model_base_url="https://openrouter.ai/api/v1",
+            )
+        )
 
 
 def test_registry_rejects_missing_provider() -> None:
