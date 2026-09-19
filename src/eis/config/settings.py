@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     model_api_key: str = ""
     model_timeout: float = Field(default=60.0, gt=0)
     model_max_attempts: int = Field(default=3, ge=1, le=10)
+    cloudflare_account_id: str = ""
+    cloudflare_gateway_id: str = ""
     embedding_provider: str = "none"
     repository_provider: str = "none"
     knowledge_backend: str = "none"
