@@ -42,10 +42,6 @@ python_version = "3.11"
 strict = true
 warn_unused_configs = true
 
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-ignore_errors = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-config --strict-markers"
