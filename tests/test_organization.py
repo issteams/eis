@@ -1,10 +1,10 @@
 """Tests for organizational knowledge isolation and retrieval."""
 
 from eis.organization import (
-    CRAFTIQ,
-    ECHOWAVS,
+    EXAMPLE_ORGANIZATION,
+    EXAMPLE_PRODUCT,
+    EXAMPLE_REPOSITORY,
     INITIAL_STORE,
-    SMARKET,
     UNKNOWN,
     InMemoryOrganizationStore,
     OrganizationEntity,
@@ -15,22 +15,21 @@ from eis.organization import (
 
 
 def test_initial_products_keep_unknown_fields_explicit() -> None:
-    assert CRAFTIQ.current_status == UNKNOWN
-    assert CRAFTIQ.architecture == UNKNOWN
-    assert CRAFTIQ.engineering_standards == (UNKNOWN,)
-    assert SMARKET.architecture == UNKNOWN
-    assert SMARKET.technology_stack == (UNKNOWN,)
+    assert EXAMPLE_PRODUCT.current_status == UNKNOWN
+    assert EXAMPLE_PRODUCT.architecture == UNKNOWN
+    assert EXAMPLE_PRODUCT.engineering_standards == (UNKNOWN,)
+    assert EXAMPLE_PRODUCT.technology_stack == (UNKNOWN,)
 
 
 def test_product_retrieval_isolated_to_requested_product() -> None:
-    results = INITIAL_STORE.retrieve("marketing", product_id="craftiq")
+    results = INITIAL_STORE.retrieve("application", product_id="example-product")
 
-    assert results == (CRAFTIQ,)
-    assert all(getattr(result, "id", None) == "craftiq" for result in results)
+    assert results == (EXAMPLE_PRODUCT,)
+    assert all(getattr(result, "id", None) == "example-product" for result in results)
 
 
 def test_product_retrieval_does_not_cross_contaminate_products() -> None:
-    results = INITIAL_STORE.retrieve("fashion", product_id="craftiq")
+    results = INITIAL_STORE.retrieve("fashion", product_id="example-product")
 
     assert results == ()
 
@@ -41,37 +40,24 @@ def test_kind_filter_isolates_organizational_entities() -> None:
         kind=OrganizationEntityKind.REPOSITORY,
     )
 
-    assert {entity.id for entity in results} == {
-        "repo-issteams-craftiq",
-        "repo-issteams-eis",
-        "repo-issteams-ai-marketing-engine",
-    }
+    assert results == (EXAMPLE_REPOSITORY,)
 
 
 def test_product_kind_filter_retrieves_only_products() -> None:
     results = INITIAL_STORE.retrieve("", kind=OrganizationEntityKind.PRODUCT)
 
-    assert {product.id for product in results} == {
-        "craftiq",
-        "stitchai",
-        "smarket",
-        "eis",
-    }
+    assert results == (EXAMPLE_PRODUCT,)
 
 
 def test_relationship_retrieval_is_explicit() -> None:
-    relationships = INITIAL_STORE.relationships("smarket")
+    relationships = INITIAL_STORE.relationships("example-product")
 
-    assert len(relationships) == 2
-    assert {(item.relation, item.target_id) for item in relationships} == {
-        ("part_of", "stitchai"),
-        ("belongs_to", "echowavs"),
-    }
+    assert relationships == ()
 
 
 def test_store_accessors_return_known_and_unknown_entities() -> None:
-    assert INITIAL_STORE.organization().name == ECHOWAVS.name
-    assert INITIAL_STORE.get_entity("echowavs") == ECHOWAVS
+    assert INITIAL_STORE.organization().name == EXAMPLE_ORGANIZATION.name
+    assert INITIAL_STORE.get_entity("example-organization") == EXAMPLE_ORGANIZATION
     assert INITIAL_STORE.get_entity("missing") is None
     assert INITIAL_STORE.get_product("missing") is None
 

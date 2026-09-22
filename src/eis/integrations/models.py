@@ -1,4 +1,4 @@
-"""Stable models for controlled Echowavs system integrations."""
+"""Stable models for controlled external system integrations."""
 
 from __future__ import annotations
 

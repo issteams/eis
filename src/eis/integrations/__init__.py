@@ -1,4 +1,4 @@
-"""Controlled adapters for integrating EIS with Echowavs systems."""
+"""Controlled adapters for integrating EIS with external systems."""
 
 from eis.integrations.github import GitHubConnector
 from eis.integrations.local import LocalRepositoryConnector
@@ -12,18 +12,18 @@ from eis.integrations.models import (
     RepositoryRef,
     RepositorySnapshot,
 )
-from eis.integrations.runtime import EchowavsIntegration, ProjectContext
+from eis.integrations.runtime import IntegrationRuntime, ProjectContext
 from eis.integrations.security import IntegrationSecurity
 
 __all__ = [
     "CIRun",
     "Change",
     "Document",
-    "EchowavsIntegration",
     "EngineeringRequest",
     "GitHubConnector",
     "IntegrationKind",
     "IntegrationResult",
+    "IntegrationRuntime",
     "IntegrationSecurity",
     "LocalRepositoryConnector",
     "ProjectContext",

@@ -13,11 +13,11 @@ from eis.sdk import EvaluationResult
 async def main() -> None:
     eis = EIS()
 
-    product = eis.register_product("CraftIQ", "AI marketing platform")
+    product = eis.register_product("Example Product", "Example application")
     eis.add_knowledge(
-        "CraftIQ is an Echowavs product.",
+        "Example Product is an application using EIS.",
         source="product-profile",
-        title="CraftIQ",
+        title="Example Product",
     )
 
     task = eis.create_task("Describe the product")
@@ -25,7 +25,7 @@ async def main() -> None:
     agent_result = await eis.run_agent("assistant", task)
 
     evaluation = await eis.evaluate_idea(
-        "Build a desktop EIS application",
+        "Build an application using EIS",
         lambda subject: EvaluationResult(
             subject=subject,
             conclusion="needs-review",

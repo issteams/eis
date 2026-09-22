@@ -1,4 +1,4 @@
-"""Orchestration layer for controlled Echowavs integrations."""
+"""Orchestration layer for controlled external integrations."""
 
 from __future__ import annotations
 
@@ -31,8 +31,8 @@ class ProjectContext:
 
 
 @dataclass(slots=True)
-class EchowavsIntegration:
-    """Compose external adapters without making them dependencies of EIS core."""
+class IntegrationRuntime:
+    """Compose external adapters without coupling EIS core to one organization."""
 
     repositories: RepositoryConnector
     documentation: DocumentationConnector | None = None
@@ -86,4 +86,4 @@ class EchowavsIntegration:
         return tuple(await self.ci.runs(repository, limit))
 
 
-__all__ = ["EchowavsIntegration", "ProjectContext"]
+__all__ = ["IntegrationRuntime", "ProjectContext"]
