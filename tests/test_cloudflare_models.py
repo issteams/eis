@@ -113,9 +113,7 @@ def test_default_registry_rejects_incomplete_cloudflare_configuration() -> None:
 def test_cloudflare_model_uses_account_scoped_endpoint_and_gateway(monkeypatch) -> None:
     response = FakeResponse(
         {
-            "choices": [
-                {"message": {"content": "Cloudflare response", "tool_calls": []}}
-            ],
+            "choices": [{"message": {"content": "Cloudflare response", "tool_calls": []}}],
             "usage": {"prompt_tokens": 4, "completion_tokens": 2},
         }
     )
@@ -142,8 +140,7 @@ def test_cloudflare_model_uses_account_scoped_endpoint_and_gateway(monkeypatch) 
         url = calls[0][0][0]
         headers = calls[0][1]["headers"]
         assert url == (
-            "https://api.cloudflare.com/client/v4/accounts/"
-            "account-123/ai/v1/chat/completions"
+            "https://api.cloudflare.com/client/v4/accounts/account-123/ai/v1/chat/completions"
         )
         assert headers["Authorization"] == "Bearer secret"
         assert headers["cf-aig-gateway-id"] == "default"
@@ -160,9 +157,7 @@ def test_cloudflare_model_supports_structured_generation_and_embeddings(monkeypa
                     "usage": {"prompt_tokens": 3, "completion_tokens": 2},
                 }
             ),
-            FakeResponse(
-                {"data": [{"embedding": [1, 2.5]}], "usage": {"prompt_tokens": 2}}
-            ),
+            FakeResponse({"data": [{"embedding": [1, 2.5]}], "usage": {"prompt_tokens": 2}}),
         ]
     )
 
@@ -220,9 +215,7 @@ def test_cloudflare_model_maps_http_errors() -> None:
 
     async def run() -> None:
         with pytest.raises(ModelRateLimitError):
-            await model._raise_for_status(
-                httpx.Response(429, headers={"retry-after": "2"})
-            )
+            await model._raise_for_status(httpx.Response(429, headers={"retry-after": "2"}))
         with pytest.raises(ModelUnavailableError):
             await model._raise_for_status(httpx.Response(503))
         with pytest.raises(ModelValidationError):

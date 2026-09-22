@@ -12,7 +12,6 @@ from eis.models.interfaces import Model, ModelProvider
 from eis.models.policy import RetryPolicy
 from eis.models.runtime import ReliableModel
 
-
 _OPENAI_COMPATIBLE_PROVIDERS = frozenset({"openrouter"})
 
 
@@ -64,7 +63,9 @@ def default_registry(settings: Settings | None = None) -> ModelRegistry:
         )
     elif provider_name == "cloudflare":
         if not resolved_settings.cloudflare_account_id:
-            raise ModelConfigurationError("cloudflare_account_id is required for provider: cloudflare")
+            raise ModelConfigurationError(
+                "cloudflare_account_id is required for provider: cloudflare"
+            )
         if not resolved_settings.model_api_key:
             raise ModelConfigurationError("model_api_key is required for provider: cloudflare")
         if not resolved_settings.model_name:

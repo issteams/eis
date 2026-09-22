@@ -51,9 +51,7 @@ class CloudflareModel:
         self.account_id = account_id
         self.api_key = api_key
         self.gateway_id = gateway_id
-        self.base_url = (
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1"
-        )
+        self.base_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1"
         self._timeout = timeout
         self._metadata = ModelMetadata(
             provider="cloudflare",
@@ -129,10 +127,7 @@ class CloudflareModel:
             "input": list(request.texts),
         }
         data = await self._post("/embeddings", payload, request.timeout)
-        vectors = tuple(
-            tuple(float(value) for value in item["embedding"])
-            for item in data["data"]
-        )
+        vectors = tuple(tuple(float(value) for value in item["embedding"]) for item in data["data"])
         return EmbeddingResponse(
             vectors,
             self._metadata,
@@ -268,7 +263,5 @@ class CloudflareModel:
         if not isinstance(value, dict):
             return Usage()
         input_tokens = int(value.get("prompt_tokens") or value.get("input_tokens") or 0)
-        output_tokens = int(
-            value.get("completion_tokens") or value.get("output_tokens") or 0
-        )
+        output_tokens = int(value.get("completion_tokens") or value.get("output_tokens") or 0)
         return Usage(input_tokens, output_tokens, input_tokens + output_tokens)
