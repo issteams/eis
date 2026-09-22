@@ -1,15 +1,11 @@
-"""Echowavs organizational intelligence layer."""
+"""Organizational intelligence models and example configuration."""
 
 from eis.organization.data import (
-    CRAFTIQ,
-    ECHOWAVS,
-    EIS,
+    EXAMPLE_ORGANIZATION,
+    EXAMPLE_PRODUCT,
+    EXAMPLE_REPOSITORY,
     INITIAL_STORE,
     ORGANIZATION,
-    RELATIONSHIPS,
-    REPOSITORIES,
-    SMARKET,
-    STITCHAI,
 )
 from eis.organization.models import (
     UNKNOWN,
@@ -23,15 +19,11 @@ from eis.organization.protocols import OrganizationStore
 from eis.organization.store import InMemoryOrganizationStore
 
 __all__ = [
-    "CRAFTIQ",
-    "ECHOWAVS",
-    "EIS",
+    "EXAMPLE_ORGANIZATION",
+    "EXAMPLE_PRODUCT",
+    "EXAMPLE_REPOSITORY",
     "INITIAL_STORE",
     "ORGANIZATION",
-    "RELATIONSHIPS",
-    "REPOSITORIES",
-    "SMARKET",
-    "STITCHAI",
     "UNKNOWN",
     "InMemoryOrganizationStore",
     "OrganizationEntity",
