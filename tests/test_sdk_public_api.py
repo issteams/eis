@@ -8,16 +8,16 @@ from eis.sdk.models import EvaluationResult, TaskStatus
 
 def test_public_sdk_lifecycle() -> None:
     eis = EIS()
-    product = eis.register_product("CraftIQ", "AI marketing platform")
+    product = eis.register_product("Example Product", "Example application")
     knowledge = eis.add_knowledge(
-        "CraftIQ is an Echowavs product.",
+        "Example Product is an application using EIS.",
         source="product-profile",
     )
-    task = eis.create_task("Explain CraftIQ")
+    task = eis.create_task("Explain Example Product")
 
-    assert product.name == "CraftIQ"
+    assert product.name == "Example Product"
     assert eis.products() == (product,)
-    assert eis.search_knowledge("CraftIQ") == (knowledge,)
+    assert eis.search_knowledge("Example Product") == (knowledge,)
     assert eis.task_result(task.id) is not None
     assert eis.task_result(task.id).status is TaskStatus.QUEUED
 
