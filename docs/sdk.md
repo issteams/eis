@@ -10,11 +10,11 @@ implementation details and are not part of the supported public API.
 from eis import EIS, KnowledgeItem, Product
 
 eis = EIS()
-eis.register_product(Product(name="CraftIQ", purpose="AI marketing platform"))
+eis.register_product(Product(name="Example Product", purpose="Example application"))
 eis.add_knowledge(
     KnowledgeItem(
-        title="CraftIQ",
-        content="CraftIQ is an AI marketing platform under Echowavs.",
+        title="Example Product",
+        content="Example Product is an application using EIS.",
         source="organization",
     )
 )
@@ -24,8 +24,8 @@ eis.add_knowledge(
 
 ```python
 task = eis.create_task(
-    "Design the audience intelligence architecture",
-    input={"product": "CraftIQ"},
+    "Design the application architecture",
+    input={"product": "Example Product"},
 )
 ```
 
@@ -48,7 +48,7 @@ result = await eis.run_agent("architect", task)
 Evaluation is explicit and typed:
 
 ```python
-result = await eis.evaluate_idea("Add autonomous campaign optimization", evaluator)
+result = await eis.evaluate_idea("Add autonomous workflow optimization", evaluator)
 ```
 
 ## Engineering
