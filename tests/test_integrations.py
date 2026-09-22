@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from eis.integrations import (
-    EchowavsIntegration,
+    IntegrationRuntime,
     IntegrationKind,
     IntegrationSecurity,
     LocalRepositoryConnector,
@@ -81,15 +81,15 @@ def test_github_repository_mapping_is_provider_neutral() -> None:
 
     repository = connector._repo_from_item(
         {
-            "full_name": "issteams/eis",
-            "html_url": "https://github.com/issteams/eis",
+            "full_name": "example/repository",
+            "html_url": "https://github.com/example/repository",
             "default_branch": "foundation/eis-architecture",
             "id": 1,
             "private": True,
         }
     )
 
-    assert repository.name == "issteams/eis"
+    assert repository.name == "example/repository"
     assert repository.provider is IntegrationKind.GITHUB
     assert repository.default_branch == "foundation/eis-architecture"
 
@@ -102,8 +102,8 @@ def test_github_connector_rejects_untrusted_host(security: IntegrationSecurity) 
 @pytest.mark.anyio
 async def test_github_read_operations_are_mapped(security: IntegrationSecurity) -> None:
     repository = RepositoryRef(
-        "issteams/eis",
-        "https://github.com/issteams/eis",
+        "example/repository",
+        "https://github.com/example/repository",
         default_branch="main",
         provider=IntegrationKind.GITHUB,
     )
@@ -113,8 +113,8 @@ async def test_github_read_operations_are_mapped(security: IntegrationSecurity) 
             if path == "/user/repos?per_page=100":
                 return [
                     {
-                        "full_name": "issteams/eis",
-                        "html_url": "https://github.com/issteams/eis",
+                        "full_name": "example/repository",
+                        "html_url": "https://github.com/example/repository",
                         "default_branch": "main",
                     }
                 ]
@@ -130,10 +130,10 @@ async def test_github_read_operations_are_mapped(security: IntegrationSecurity) 
                 return [
                     {
                         "sha": "abc",
-                        "html_url": "https://github.com/issteams/eis/commit/abc",
+                        "html_url": "https://github.com/example/repository/commit/abc",
                         "commit": {
                             "message": "first change\nbody",
-                            "author": {"name": "Abba", "date": "2026-09-17T00:00:00Z"},
+                            "author": {"name": "Example Author", "date": "2026-09-17T00:00:00Z"},
                         },
                     }
                 ]
@@ -149,7 +149,7 @@ async def test_github_read_operations_are_mapped(security: IntegrationSecurity) 
                             "id": 7,
                             "status": "completed",
                             "conclusion": "success",
-                            "html_url": "https://github.com/issteams/eis/actions/runs/7",
+                            "html_url": "https://github.com/example/repository/actions/runs/7",
                         }
                     ]
                 }
@@ -162,7 +162,7 @@ async def test_github_read_operations_are_mapped(security: IntegrationSecurity) 
     documents = await connector.ingest(repository)
     runs = await connector.runs(repository, limit=0)
 
-    assert repositories[0].name == "issteams/eis"
+    assert repositories[0].name == "example/repository"
     assert snapshot.files == ("README.md",)
     assert snapshot.directories == ("src",)
     assert snapshot.documentation == ("README.md",)
@@ -196,7 +196,7 @@ async def test_integration_creates_tasks_without_external_side_effects(
         async def changes(self, repository):
             return ()
 
-    integration = EchowavsIntegration(Repositories())
+    integration = IntegrationRuntime(Repositories())
     repository = RepositoryRef("demo", "/tmp/demo", provider=IntegrationKind.LOCAL_REPOSITORY)
     task = await integration.create_engineering_task(repository, "inspect architecture")
 
@@ -234,7 +234,7 @@ async def test_integration_project_context_and_verification(security: Integratio
         async def create_issue(self, target, title, body, *, approval=None):
             return "issue-url"
 
-    integration = EchowavsIntegration(Repositories(), Documentation(), CI(), Issues())
+    integration = IntegrationRuntime(Repositories(), Documentation(), CI(), Issues())
     assert await integration.discover_repositories() == (repository,)
     assert await integration.inspect_repository(repository) == snapshot
     context = await integration.project_context(repository, ci_limit=3)
@@ -250,7 +250,7 @@ async def test_integration_requires_configured_optional_adapters(
     security: IntegrationSecurity,
 ) -> None:
     repository = RepositoryRef("demo", "/tmp/demo", provider=IntegrationKind.LOCAL_REPOSITORY)
-    integration = EchowavsIntegration(object())
+    integration = IntegrationRuntime(object())
 
     with pytest.raises(RuntimeError, match="issue tracking"):
         await integration.create_issue(repository, "title", "body")
