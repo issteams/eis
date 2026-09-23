@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from eis.integrations import (
-    IntegrationRuntime,
     IntegrationKind,
+    IntegrationRuntime,
     IntegrationSecurity,
     LocalRepositoryConnector,
     RepositoryRef,
